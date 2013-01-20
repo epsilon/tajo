@@ -87,6 +87,8 @@
     <module>tajo-rpc</module>
     <module>tajo-catalog</module>
     <module>tajo-dist</module>
+    <module>tajo-algebra</module>
+    <module>tajo-sql</module>
   </modules>
 
   <build>

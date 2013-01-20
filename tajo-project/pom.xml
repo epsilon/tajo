@@ -358,12 +358,28 @@
       </dependency>
       <dependency>
         <groupId>kr.ac.korea.dbserver</groupId>
+        <artifactId>tajo-core-backend</artifactId>
+        <type>test-jar</type>
+        <version>${tajo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>kr.ac.korea.dbserver</groupId>
         <artifactId>tajo-core-pullserver</artifactId>
         <version>${tajo.version}</version>
       </dependency>
       <dependency>
         <groupId>kr.ac.korea.dbserver</groupId>
         <artifactId>tajo-rpc</artifactId>
+        <version>${tajo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>kr.ac.korea.dbserver</groupId>
+        <artifactId>tajo-algebra</artifactId>
+        <version>${tajo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>kr.ac.korea.dbserver</groupId>
+        <artifactId>tajo-sql</artifactId>
         <version>${tajo.version}</version>
       </dependency>
 

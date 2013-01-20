@@ -21,3 +21,10 @@ Copyright (c) 2006-2012 Google Inc.
 
 This product includes/uses Protocol Buffers (http://code.google.com/p/protobuf/)
 Copyright (c) 2008, Google Inc.
+
+This product includes/uses ISO SQL 2003 Grammar (http://www.antlr.org/grammar/list.html)
+Copyright (c) 2011, Mage Systems
+Portions Copyright (c)  Jonathan Leffler 2004-2009'
+Portions Copyright (c) 2003, ISO - International Organization for Standardization
+All rights reserved.
+

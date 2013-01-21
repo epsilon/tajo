@@ -86,13 +86,21 @@ import tajo.frontend.sql.SQLParseError;
    }
 }
 
+sql
+  : statement EOF
+  ;
+
 // NQL Main
 statement
-  : SESSION CLEAR -> ^(SESSION_CLEAR)
-  | dataStatement 
+  : sessionStatement
+  | dataStatement
   | dataChangeStatement
   | schemaStatement
   | indexStatement
+  ;
+
+sessionStatement
+  : SESSION CLEAR -> ^(SESSION_CLEAR)
   ;
   
 dataStatement

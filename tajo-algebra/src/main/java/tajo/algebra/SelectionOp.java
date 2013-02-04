@@ -20,19 +20,16 @@
 
 package tajo.algebra;
 
-import com.google.gson.*;
-import tajo.engine.eval.EvalNode;
+public class SelectionOp extends UnaryOp implements JsonSerializable {
+	private Relation relation;
+  private Expr qual;
 
-public class SelectionOp extends UnaryOp implements Cloneable {
-	private String relation;
-  private EvalNode qual;
-
-  public SelectionOp(String relation) {
-    super(OperatorType.SELECTION);
+  public SelectionOp(Relation relation) {
+    super(OperatorType.Selection);
     this.relation = relation;
   }
 
-  public String getRelation() {
+  public Relation getRelation() {
     return this.relation;
   }
 
@@ -40,24 +37,28 @@ public class SelectionOp extends UnaryOp implements Cloneable {
     return qual != null;
   }
 
-	public EvalNode getQual() {
+  public void setQual(Expr expr) {
+    this.qual = expr;
+  }
+
+	public Expr getQual() {
 		return this.qual;
 	}
-  
-  public String toString() {
-    Gson gson = new Gson();
-    return gson.toJson(this);
-  }
+
   
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof SelectionOp) {
       SelectionOp other = (SelectionOp) obj;
       return super.equals(other) 
-          && this.qual.equals(other.qual)
-          && subExpr.equals(other.subExpr);
+          && this.qual.equals(other.qual);
     } else {
       return false;
     }
+  }
+
+  @Override
+  public String toJson() {
+    return JsonHelper.toJson(this);
   }
 }

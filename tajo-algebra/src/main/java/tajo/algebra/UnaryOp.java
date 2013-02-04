@@ -1,21 +1,20 @@
 package tajo.algebra;
 
-public abstract class UnaryOp extends RelationalOp implements Cloneable {
-  RelationalOp subExpr;
+public abstract class UnaryOp extends RelationalOp {
+  private RelationalOp child;
+
+  @SuppressWarnings("unused")
+  UnaryOp() {}
 
   public UnaryOp(OperatorType type) {
     super(type);
   }
 
-  public RelationalOp getSubExpr() {
-    return this.subExpr;
+  public RelationalOp getSubOp() {
+    return this.child;
   }
 
-  @Override
-  public Object clone() throws CloneNotSupportedException {
-    UnaryOp unary = (UnaryOp) super.clone();
-    unary.subExpr = (RelationalOp) (subExpr == null ? null : subExpr.clone());
-
-    return unary;
+  public void setSubOp(RelationalOp op) {
+    this.child = op;
   }
 }

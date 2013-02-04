@@ -14,16 +14,30 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+
+public class LimitOp extends UnaryOp {
+  private long fetchFirstNum;
+
+  public LimitOp(long fetchFirstNum) {
+    this.fetchFirstNum = fetchFirstNum;
+  }
+
+  public long getLimitRow() {
+    return this.fetchFirstNum;
+  }
+
+  @Override
+  public String toString() {
+    return toJson();
+  }
+
+  @Override
+  public String toJson() {
+    return JsonHelper.toJson(this);
+  }
+
+  public boolean equals(Object obj) {
+    return obj instanceof LimitOp &&
+        fetchFirstNum == ((LimitOp)obj).fetchFirstNum;
+  }
 }

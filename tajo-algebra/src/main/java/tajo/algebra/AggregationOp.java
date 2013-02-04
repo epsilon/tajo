@@ -14,16 +14,13 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class AggregationOp extends RelationalOp {
+  public AggregationOp() {
+    super(OperatorType.Aggregation);
+  }
+
+  @Override
+  public String toJson() {
+    return null;
+  }
 }

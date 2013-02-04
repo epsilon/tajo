@@ -14,16 +14,6 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public interface JsonSerializable {
+  String toJson();
 }

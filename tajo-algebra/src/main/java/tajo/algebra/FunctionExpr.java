@@ -14,16 +14,19 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class FunctionExpr extends Expr {
+  private String signature;
+  private Expr [] arguments;
+
+  public FunctionExpr(String signature) {
+    super(ExpressionType.Function);
+  }
+
+  public void setArguments(Expr [] arguments) {
+    this.arguments = arguments;
+  }
+
+  public String toJson() {
+    return JsonHelper.toJson(this);
+  }
 }

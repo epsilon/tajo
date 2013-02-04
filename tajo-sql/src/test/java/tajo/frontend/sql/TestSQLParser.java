@@ -491,7 +491,8 @@ public class TestSQLParser {
       "col is null", // 27
       "col is not null", // 28
       "col = null", // 29
-      "col != null" // 30
+      "col != null", // 30
+      "(3 > 1) = (2 > 1)" // 31
   };
 
   public static SQLParser parseExpr(String expr) {
@@ -584,6 +585,13 @@ public class TestSQLParser {
     assertEquals(node.getText(), "<>");
     assertEquals(node.getChild(0).getText(), "*");
     assertEquals(node.getChild(1).getText(), "/");
+
+    p = parseExpr(expressions[31]);
+    node = (CommonTree) p.comparison_predicate().getTree();
+    System.out.println(node.toStringTree());
+    assertEquals(node.getText(), "=");
+    assertEquals(node.getChild(0).getText(), ">");
+    assertEquals(node.getChild(1).getText(), ">");
   }
 
   @Test

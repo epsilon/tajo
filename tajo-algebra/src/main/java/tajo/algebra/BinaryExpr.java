@@ -14,16 +14,13 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class BinaryExpr extends Expr {
+  Object left_term;
+  Object right_term;
+
+  public BinaryExpr(ExpressionType op_type, Object leftTerm, Object rightTerm) {
+    super(op_type);
+    this.left_term = leftTerm;
+    this.right_term = rightTerm;
+  }
 }

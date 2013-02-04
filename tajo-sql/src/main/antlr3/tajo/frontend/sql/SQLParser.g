@@ -92,11 +92,15 @@ sql
   ;
 
 statement
-  : SESSION CLEAR -> ^(SESSION_CLEAR)
-  | dataStatement 
+  : sessionStatement
+  | dataStatement
   | dataChangeStatement
   | schemaStatement
   | indexStatement
+  ;
+
+sessionStatement
+  : SESSION CLEAR -> ^(SESSION_CLEAR)
   ;
   
 dataStatement
@@ -284,11 +288,16 @@ union_join
   ;
 
 join_type
+  options {k=1;}
   : INNER
-  | t=outer_join_type (OUTER)? -> ^(OUTER $t)
+  | t=outer_join_type -> ^(OUTER $t)
   ;
 
 outer_join_type
+  : outer_join_type_part2 (OUTER?)!
+  ;
+
+outer_join_type_part2
   : LEFT
   | RIGHT
   | FULL

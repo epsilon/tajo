@@ -1,6 +1,7 @@
 package tajo.algebra;
 
 import tajo.engine.parser.QueryBlock.Target;
+
 import java.util.Arrays;
 
 public class ProjectionExpr extends UnaryOp implements Cloneable {
@@ -10,18 +11,12 @@ public class ProjectionExpr extends UnaryOp implements Cloneable {
   private Target [] targets;
 
 	public ProjectionExpr(Target[] targets) {
-		super(OperatorType.PROJECTION);
+		super(OperatorType.Projection);
 		this.targets = targets;
 	}
 	
 	public Target [] getTargets() {
 	  return this.targets;
-	}
-	
-	public String toString() {
-	  StringBuilder sb = new StringBuilder(type.getName());
-	  sb.append(getSubExpr());
-    return sb.toString();
 	}
 	
 	@Override
@@ -31,19 +26,15 @@ public class ProjectionExpr extends UnaryOp implements Cloneable {
 	    
 	    boolean b1 = super.equals(other);
 	    boolean b2 = Arrays.equals(targets, other.targets);
-	    boolean b3 = subExpr.equals(other.subExpr);
 	    
-	    return b1 && b2 && b3;
+	    return b1 && b2;
 	  } else {
 	    return false;
 	  }
 	}
-	
-	@Override
-  public Object clone() throws CloneNotSupportedException {
-	  ProjectionExpr projNode = (ProjectionExpr) super.clone();
-	  projNode.targets = targets.clone();
-	  
-	  return projNode;
-	}
+
+  @Override
+  public String toJson() {
+    return JsonHelper.toJson(this);
+  }
 }

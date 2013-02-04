@@ -14,16 +14,20 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class ColumnRef extends Expr {
+  private String table_name;
+  private String column_name;
+
+  public ColumnRef(String columnName) {
+    super(ExpressionType.COLUMN_REF);
+    this.column_name = columnName;
+  }
+
+  public void setTableName(String tableName) {
+    this.table_name = tableName;
+  }
+
+  public String getTableName() {
+    return this.table_name;
+  }
 }

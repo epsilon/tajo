@@ -14,16 +14,15 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class ReferRelation extends Relation {
+  private RelationalOp nested;
+
+  public ReferRelation(String relation, RelationalOp nested) {
+    super(relation);
+    this.nested = nested;
+  }
+
+  public RelationalOp getReference() {
+    return nested;
+  }
 }

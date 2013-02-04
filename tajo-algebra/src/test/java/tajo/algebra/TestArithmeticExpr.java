@@ -14,16 +14,21 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+import com.google.gson.Gson;
+import org.junit.Test;
+
+public class TestArithmeticExpr {
+
+  @Test
+  public void test() {
+    Expr expr1 = new BinaryExpr(ExpressionType.PLUS, "1", "2");
+    Expr expr2 = new BinaryExpr(ExpressionType.MINUS, "1", expr1);
+
+    String json = expr2.toString();
+
+    Gson gson = JsonHelper.getInstance();
+    Expr expr3 = gson.fromJson(json, Expr.class);
+
+    System.out.println(expr3.toString());
+  }
 }

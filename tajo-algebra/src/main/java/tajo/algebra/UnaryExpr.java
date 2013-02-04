@@ -14,16 +14,11 @@
 
 package tajo.algebra;
 
-public enum OperatorType {
-  Relation,
-  Except,
-	Aggregation,
-  Intersect,
-  Join,
-  Projection,
-  Rename,
-  Selection,
-  Sort,
-  Union,
-  Limit
+public class UnaryExpr extends Expr {
+  private Object term;
+
+  public UnaryExpr(ExpressionType operator, Object obj) {
+    super(operator);
+    this.term = obj;
+  }
 }

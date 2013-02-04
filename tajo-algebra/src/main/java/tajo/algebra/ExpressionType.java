@@ -35,9 +35,11 @@ public enum ExpressionType {
   DIVIDE("/"),
   MOD("%"),
 
-  COLUMN_REF("column"),
+  ColumnRef("column"),
   Function("function"),
-  CaseWhen("case_when");
+  CaseWhen("case_when"),
+  Like("like"),
+  Literal("literal");
 
   private String exprName;
   ExpressionType(String name) {
@@ -79,6 +81,9 @@ public enum ExpressionType {
       case "*": operator = MULTIPLY; break;
       case "/": operator = DIVIDE; break;
       case "%": operator = MOD; break;
+
+      case "column": operator = ColumnRef; break;
+      case "literal": operator = Literal; break;
 
       default:
         new JsonParseException("Cannot deserialize: " + str);

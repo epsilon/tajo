@@ -15,10 +15,10 @@
 package tajo.algebra;
 
 public class Target implements JsonSerializable {
-  private Expr expr;
+  private Object expr;
   private String alias;
 
-  public Target(Expr expr) {
+  public Target(Object expr) {
    this.expr = expr;
   }
 
@@ -28,6 +28,10 @@ public class Target implements JsonSerializable {
 
   public String getAlias() {
     return this.alias;
+  }
+
+  public void setAlias(String alias) {
+    this.alias = alias;
   }
 
   @Override

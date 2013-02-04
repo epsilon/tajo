@@ -7,7 +7,7 @@ import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
 import tajo.algebra.*;
-import tajo.engine.parser.NQLParser;
+import tajo.algebra.LiteralExpr.LiteralType;
 import tajo.engine.planner.JoinType;
 
 public class SQLAnalyzer {
@@ -66,20 +66,23 @@ public class SQLAnalyzer {
 
   private RelationalOp parseSelectStatement(ParsingContext context,
                                           final CommonTree ast) {
-    RelationalOp root = null;
+    RelationalOp current = null;
     CommonTree node;
     for (int cur = 0; cur < ast.getChildCount(); cur++) {
       node = (CommonTree) ast.getChild(cur);
 
       switch (node.getType()) {
         case SQLParser.FROM:
-          root = parseFromClause(context, node);
+          current = parseFromClause(context, node);
           break;
 
         case SQLParser.SET_QUALIFIER:
           break;
 
         case SQLParser.SEL_LIST:
+          ProjectionOp proj = parseSelectList(node);
+          proj.setSubOp(current);
+          current = proj;
           break;
 
         case SQLParser.WHERE:
@@ -104,7 +107,51 @@ public class SQLAnalyzer {
       }
     }
 
-    return root;
+    return current;
+  }
+
+  /**
+   * This method parses the select list of a query statement.
+   * <pre>
+   * EBNF:
+   *
+   * selectList
+   * : MULTIPLY -> ^(SEL_LIST ALL)
+   * | derivedColumn (COMMA derivedColumn)* -> ^(SEL_LIST derivedColumn+)
+   * ;
+   *
+   * derivedColumn
+   * : bool_expr asClause? -> ^(COLUMN bool_expr asClause?)
+   * ;
+   *
+   * @param ast
+   */
+  private ProjectionOp parseSelectList(final CommonTree ast) {
+    ProjectionOp projectionOp = new ProjectionOp();
+    if (ast.getChild(0).getType() == SQLParser.ALL) {
+      projectionOp.setAll();
+    } else {
+      CommonTree node;
+      int numTargets = ast.getChildCount();
+      Target [] targets = new Target[numTargets];
+      Object evalTree;
+      String alias;
+
+      // the final one for each target is the alias
+      // EBNF: bool_expr AS? fieldName
+      for (int i = 0; i < ast.getChildCount(); i++) {
+        node = (CommonTree) ast.getChild(i);
+        evalTree = createExpression(node);
+        targets[i] = new Target(evalTree);
+        if (node.getChildCount() > 1) {
+          alias = node.getChild(node.getChildCount() - 1).getChild(0).getText();
+          targets[i].setAlias(alias);
+        }
+      }
+      projectionOp.setTargets(targets);
+    }
+
+    return projectionOp;
   }
 
   /**
@@ -112,7 +159,6 @@ public class SQLAnalyzer {
    * @param ast
    */
   private RelationalOp parseFromClause(ParsingContext ctx, final CommonTree ast) {
-    // implicit join or the from clause on single relation
     RelationalOp previous = null;
     CommonTree node;
     for (int i = 0; i < ast.getChildCount(); i++) {
@@ -123,7 +169,15 @@ public class SQLAnalyzer {
         case SQLParser.TABLE:
           // table (AS ID)?
           // 0 - a table name, 1 - table alias
-          previous = parseTable(node);
+          if (previous != null) {
+            RelationalOp inner = parseTable(node);
+            JoinOp newJoin = new JoinOp(JoinType.INNER);
+            newJoin.setOuter(previous);
+            newJoin.setInner(inner);
+            previous = newJoin;
+          } else {
+            previous = parseTable(node);
+          }
           break;
         case SQLParser.JOIN:
           JoinOp newJoin = parseExplicitJoinClause(ctx, node);
@@ -323,27 +377,51 @@ public class SQLAnalyzer {
     }
 
     if (tree.getChild(idx) != null &&
-        tree.getChild(idx).getType() == NQLParser.ELSE) {
-      Expr elseResult = (Expr) createExpression(tree.getChild(idx).getChild(0));
+        tree.getChild(idx).getType() == SQLParser.ELSE) {
+      Object elseResult = createExpression(tree.getChild(idx).getChild(0));
       caseEval.setElseResult(elseResult);
     }
 
     return caseEval;
   }
 
-  public Object createExpression(final Tree ast) {
+  /**
+   * <pre>
+   * like_predicate : fieldName NOT? LIKE string_value_expr
+   * -> ^(LIKE NOT? fieldName string_value_expr)
+   * </pre>
+   * @param tree
+   * @return
+   */
+  private LikeExpr parseLike(final Tree tree) {
+    int idx = 0;
+
+    boolean not = false;
+    if (tree.getChild(idx).getType() == SQLParser.NOT) {
+      not = true;
+      idx++;
+    }
+
+    ColumnRef field = (ColumnRef) createExpression(tree.getChild(idx));
+    idx++;
+    Expr pattern = createExpression(tree.getChild(idx));
+
+    return new LikeExpr(not, field, pattern);
+  }
+
+  public Expr createExpression(final Tree ast) {
     switch(ast.getType()) {
 
       // constants
       case SQLParser.Unsigned_Integer:
-        return Integer.parseInt(ast.getText());
+        return new LiteralExpr(ast.getText(), LiteralType.Unsigned_Integer);
       case SQLParser.Unsigned_Float:
-        return Float.parseFloat(ast.getText());
+        return new LiteralExpr(ast.getText(), LiteralType.Unsigned_Float);
       case SQLParser.Unsigned_Large_Integer:
-        return Long.parseLong(ast.getText());
+        return new LiteralExpr(ast.getText(), LiteralType.Unsigned_Large_Integer);
 
       case SQLParser.Character_String_Literal:
-        return ast.getText();
+        return new LiteralExpr(ast.getText(), LiteralType.String);
 
       // unary expression
       case SQLParser.NOT:
@@ -351,7 +429,7 @@ public class SQLAnalyzer {
 
       // binary expressions
       case SQLParser.LIKE:
-        ;
+        return parseLike(ast);
 
       case SQLParser.IS:
         ;
@@ -377,7 +455,7 @@ public class SQLAnalyzer {
 
       // others
       case SQLParser.COLUMN:
-        return createExpression(ast);
+        return createExpression(ast.getChild(0));
 
       case SQLParser.FIELD_NAME:
         return checkAndGetColumnByAST(ast);

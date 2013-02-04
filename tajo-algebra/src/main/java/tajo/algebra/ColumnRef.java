@@ -19,7 +19,7 @@ public class ColumnRef extends Expr {
   private String column_name;
 
   public ColumnRef(String columnName) {
-    super(ExpressionType.COLUMN_REF);
+    super(ExpressionType.ColumnRef);
     this.column_name = columnName;
   }
 

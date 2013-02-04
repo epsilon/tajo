@@ -17,12 +17,9 @@ package tajo.frontend.sql;
 import org.antlr.runtime.tree.CommonTree;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import tajo.algebra.*;
-import tajo.engine.parser.QueryAnalyzer;
-import tajo.engine.planner.JoinType;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import tajo.algebra.Expr;
+import tajo.algebra.JsonHelper;
+import tajo.algebra.RelationalOp;
 
 public class TestSQLAnalyzer {
   private static SQLAnalyzer analyzer = null;
@@ -176,6 +173,9 @@ public class TestSQLAnalyzer {
         "select case when p_type like 'PROMO%' then l_extendedprice * (1 - l_discount) "+
             "when p_type = 'MOCC' then l_extendedprice - 100 else 0 end as cond from lineitem, part");
 
-    System.out.println(tree);
+    String json = tree.toJson();
+
+    RelationalOp recover = (RelationalOp) JsonHelper.fromJson(json, RelationalOp.class);
+    System.out.println(recover);
   }
 }

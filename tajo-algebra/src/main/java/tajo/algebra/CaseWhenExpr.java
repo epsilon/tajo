@@ -14,18 +14,13 @@
 
 package tajo.algebra;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-/**
- * Created with IntelliJ IDEA.
- * User: hyunsik
- * Date: 2/4/13
- * Time: 8:02 PM
- * To change this template use File | Settings | File Templates.
- */
 public class CaseWhenExpr extends Expr {
-  private List<WhenExpr> whens;
-  private Expr elseResult;
+  private List<WhenExpr> whens = new ArrayList<>();
+  private Object elseResult;
 
   public CaseWhenExpr() {
     super(ExpressionType.CaseWhen);
@@ -35,8 +30,25 @@ public class CaseWhenExpr extends Expr {
     whens.add(new WhenExpr(condition, result));
   }
 
-  public void setElseResult(Expr elseResult) {
+  public void setElseResult(Object elseResult) {
     this.elseResult = elseResult;
+  }
+
+  public Collection<WhenExpr> getWhens() {
+    return this.whens;
+  }
+
+  public boolean hasElseResult() {
+    return elseResult != null;
+  }
+
+  public Object getElseResult() {
+    return this.elseResult;
+  }
+
+  @Override
+  public String toJson() {
+    return JsonHelper.toJson(this);
   }
 
   public static class WhenExpr {

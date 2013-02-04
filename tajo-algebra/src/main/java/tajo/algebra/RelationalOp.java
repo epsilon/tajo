@@ -63,7 +63,7 @@ public abstract class RelationalOp implements JsonSerializable {
       case "Except": break;
       case "Intersect": break;
       case "Limit": break;
-      case "Projection": break;
+      case "Projection": clazz = ProjectionOp.class; break;
       case "Relation": clazz = Relation.class; break;
       case "Rename": break;
       case "Union": break;
@@ -91,7 +91,7 @@ public abstract class RelationalOp implements JsonSerializable {
     return clazz;
   }
 
-  static class AlgebraJsonSerDer
+  static class JsonSerDer
       implements JsonSerializer<RelationalOp>, JsonDeserializer<RelationalOp> {
 
     @Override

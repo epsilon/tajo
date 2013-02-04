@@ -15,14 +15,14 @@
 package tajo.algebra;
 
 public class Expr implements JsonSerializable {
-  private ExpressionType op_type;
+  private ExpressionType expr_type;
 
   public Expr(ExpressionType operator) {
-    this.op_type = operator;
+    this.expr_type = operator;
   }
 
   public ExpressionType getOpType() {
-    return this.op_type;
+    return this.expr_type;
   }
 
   public String toString() {

@@ -35,7 +35,7 @@ public class JsonHelper {
   private void initBuilder() {
     builder = new GsonBuilder().setPrettyPrinting();
     builder.registerTypeAdapter(ExpressionType.class, new ExpressionType.JsonSerDer());
-    builder.registerTypeAdapter(RelationalOp.class, new RelationalOp.AlgebraJsonSerDer());
+    builder.registerTypeAdapter(RelationalOp.class, new RelationalOp.JsonSerDer());
   }
 
 

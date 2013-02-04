@@ -1,13 +1,7 @@
 /*
- * Copyright 2012 Database Lab., Korea Univ.
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -21,14 +15,13 @@
 package tajo.engine.planner.physical;
 
 import com.google.common.base.Preconditions;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
-import tajo.TajoTestingUtility;
 import tajo.TaskAttemptContext;
-import tajo.WorkerTestingUtil;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;
 import tajo.catalog.proto.CatalogProtos.StoreType;
@@ -44,9 +37,9 @@ import tajo.engine.planner.logical.LogicalNode;
 import tajo.engine.planner.logical.ScanNode;
 import tajo.storage.*;
 import tajo.storage.index.bst.BSTIndex;
+import tajo.util.CommonTestingUtil;
 import tajo.util.TUtil;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Random;
@@ -66,6 +59,9 @@ public class TestBSTIndexExec {
   private BSTIndex.BSTIndexWriter writer;
   private HashMap<Integer , Integer> randomValues ;
   private int rndKey = -1;
+  private FileSystem fs;
+  private TableMeta meta;
+  private Path tablePath;
 
   private Random rnd = new Random(System.currentTimeMillis());
 
@@ -73,13 +69,13 @@ public class TestBSTIndexExec {
 
   @Before
   public void setup() throws Exception {
-    this.randomValues = new HashMap<Integer , Integer> ();
+    this.randomValues = new HashMap<> ();
     this.conf = new TajoConf();
     util = new TajoTestingCluster();
     util.startCatalogCluster();
     catalog = util.getMiniCatalogCluster().getCatalog();
 
-    Path workDir = WorkerTestingUtil.buildTestDir("target/test-data/TestPhysicalPlanner");
+    Path workDir = CommonTestingUtil.getTestDir("target/test-data/TestPhysicalPlanner");
     sm = StorageManager.get(conf, workDir);
 
     idxPath = new Path(workDir, "test.idx");
@@ -101,11 +97,13 @@ public class TestBSTIndexExec {
     writer.open();
     long offset;
 
-    TableMeta employeeMeta = TCatUtil.newTableMeta(schema, StoreType.CSV);
-    sm.initTableBase(employeeMeta, "employee");
-    FileAppender appender = (FileAppender) sm.getAppender(employeeMeta,
-        "employee", "employee");
-    Tuple tuple = new VTuple(employeeMeta.getSchema().getColumnNum());
+    meta = TCatUtil.newTableMeta(schema, StoreType.CSV);
+    tablePath = StorageUtil.concatPath(workDir, "employee", "table.csv");
+    fs = tablePath.getFileSystem(conf);
+    fs.mkdirs(tablePath.getParent());
+
+    FileAppender appender = (FileAppender)StorageManager.getAppender(conf, meta, tablePath);
+    Tuple tuple = new VTuple(meta.getSchema().getColumnNum());
     for (int i = 0; i < 10000; i++) {
       
       Tuple key = new VTuple(this.idxSchema.getColumnNum());
@@ -129,7 +127,7 @@ public class TestBSTIndexExec {
     appender.close();
     writer.close();
 
-    TableDesc desc = new TableDescImpl("employee", employeeMeta,
+    TableDesc desc = new TableDescImpl("employee", meta,
         sm.getTablePath("employee"));
     catalog.addTable(desc);
 
@@ -148,8 +146,8 @@ public class TestBSTIndexExec {
     this.rndKey = rnd.nextInt(250);
     final String QUERY = "select * from employee where managerId = " + rndKey;
     
-    Fragment[] frags = sm.split("employee");
-    File workDir = TajoTestingUtility.getTestDir("TestBSTIndex");
+    Fragment[] frags = sm.splitNG(conf, "employee", meta, tablePath, Integer.MAX_VALUE);
+    Path workDir = CommonTestingUtil.getTestDir("target/test-data/testEqual");
     TaskAttemptContext ctx = new TaskAttemptContext(conf,
         TUtil.newQueryUnitAttemptId(), new Fragment[] { frags[0] }, workDir);
     PlanningContext context = analyzer.parse(QUERY);

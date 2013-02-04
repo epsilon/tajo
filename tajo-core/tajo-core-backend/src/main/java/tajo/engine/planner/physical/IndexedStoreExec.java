@@ -1,13 +1,9 @@
 /*
  * Copyright 2012 Database Lab., Korea Univ.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,8 +16,11 @@
 
 package tajo.engine.planner.physical;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import tajo.TaskAttemptContext;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos;
@@ -37,7 +36,7 @@ import java.io.IOException;
  *
  */
 public class IndexedStoreExec extends UnaryPhysicalExec {
-  private final StorageManager sm;
+  private static Log LOG = LogFactory.getLog(IndexedStoreExec.class);
   private final SortSpec[] sortSpecs;
   private int [] indexKeys = null;
   private Schema keySchema;
@@ -51,7 +50,6 @@ public class IndexedStoreExec extends UnaryPhysicalExec {
       final PhysicalExec child, final Schema inSchema, final Schema outSchema,
       final SortSpec[] sortSpecs) throws IOException {
     super(context, inSchema, outSchema, child);
-    this.sm = sm;
     this.sortSpecs = sortSpecs;
   }
 
@@ -69,16 +67,15 @@ public class IndexedStoreExec extends UnaryPhysicalExec {
 
     BSTIndex bst = new BSTIndex(new TajoConf());
     this.comp = new TupleComparator(keySchema, sortSpecs);
-    Path storeTablePath = new Path(context.getWorkDir().getAbsolutePath() + "/out");
+    Path storeTablePath = new Path(context.getWorkDir(), "output");
+    LOG.info("Output data directory: " + storeTablePath);
     this.meta = TCatUtil
         .newTableMeta(this.outSchema, CatalogProtos.StoreType.CSV);
-    sm.initLocalTableBase(storeTablePath, meta);
-    this.appender = (FileAppender) sm.getLocalAppender(meta, new Path(storeTablePath, "data/data"));
-
-    Path indexDir = new Path(storeTablePath, "index");
-    FileSystem fs = sm.getFileSystem();
-    fs.mkdirs(indexDir);
-    this.indexWriter = bst.getIndexWriter(new Path(indexDir, "data.idx"),
+    FileSystem fs = new RawLocalFileSystem();
+    fs.mkdirs(storeTablePath);
+    this.appender = (FileAppender) StorageManager.getAppender(context.getConf(), meta,
+        new Path(storeTablePath, "output"));
+    this.indexWriter = bst.getIndexWriter(new Path(storeTablePath, "index"),
         BSTIndex.TWO_LEVEL_INDEX, keySchema, comp);
     this.indexWriter.setLoadNum(100);
     this.indexWriter.open();

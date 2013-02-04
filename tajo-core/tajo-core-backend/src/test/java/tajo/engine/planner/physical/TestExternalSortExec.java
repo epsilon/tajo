@@ -25,8 +25,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
-import tajo.TaskAttemptContext2;
-import tajo.WorkerTestingUtil;
+import tajo.TaskAttemptContext;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;
 import tajo.catalog.proto.CatalogProtos.StoreType;
@@ -35,17 +34,12 @@ import tajo.datum.Datum;
 import tajo.datum.DatumFactory;
 import tajo.engine.parser.QueryAnalyzer;
 import tajo.engine.planner.LogicalPlanner;
+import tajo.engine.planner.PhysicalPlanner;
+import tajo.engine.planner.PhysicalPlannerImpl;
 import tajo.engine.planner.PlanningContext;
 import tajo.engine.planner.logical.LogicalNode;
-import tajo.engine.planner2.PhysicalPlanner;
-import tajo.engine.planner2.PhysicalPlannerImpl;
-import tajo.engine.planner2.physical.ExternalSortExec;
-import tajo.engine.planner2.physical.MemSortExec;
-import tajo.engine.planner2.physical.PhysicalExec;
-import tajo.engine.planner2.physical.ProjectionExec;
-import tajo.engine.planner2.physical.SeqScanExec;
-import tajo.engine.planner2.physical.UnaryPhysicalExec;
 import tajo.storage.*;
+import tajo.util.CommonTestingUtil;
 import tajo.util.TUtil;
 
 import java.io.IOException;
@@ -56,24 +50,28 @@ import static org.junit.Assert.assertTrue;
 
 public class TestExternalSortExec {
   private TajoConf conf;
+  private TajoTestingCluster util;
   private final String TEST_PATH = "target/test-data/TestExternalSortExec";
   private CatalogService catalog;
   private QueryAnalyzer analyzer;
   private LogicalPlanner planner;
   private StorageManager sm;
-  private TajoTestingCluster util;
+  private Path testDir;
+
 
   private final int numTuple = 1000000;
   private Random rnd = new Random(System.currentTimeMillis());
-  private Path baseDir;
+
+
+  private TableDesc employee;
+
   @Before
   public void setUp() throws Exception {
     this.conf = new TajoConf();
     util = new TajoTestingCluster();
     catalog = util.startCatalogCluster().getCatalog();
-    baseDir = WorkerTestingUtil.buildTestDir(TEST_PATH);
-
-    sm = StorageManager.get(conf, baseDir);
+    testDir = CommonTestingUtil.getTestDir(TEST_PATH);
+    sm = StorageManager.get(conf, testDir);
 
     Schema schema = new Schema();
     schema.addColumn("managerId", DataType.INT);
@@ -81,8 +79,8 @@ public class TestExternalSortExec {
     schema.addColumn("deptName", DataType.STRING);
 
     TableMeta employeeMeta = TCatUtil.newTableMeta(schema, StoreType.CSV);
-    sm.initTableBase(employeeMeta, "employee");
-    Appender appender = sm.getAppender(employeeMeta, "employee", "employee");
+    Path employeePath = new Path(testDir, "employee.csv");
+    Appender appender = StorageManager.getAppender(conf, employeeMeta, employeePath);
     Tuple tuple = new VTuple(employeeMeta.getSchema().getColumnNum());
     for (int i = 0; i < numTuple; i++) {
       tuple.put(new Datum[] { DatumFactory.createInt(rnd.nextInt(50)),
@@ -95,9 +93,8 @@ public class TestExternalSortExec {
 
     System.out.println("Total Rows: " + appender.getStats().getNumRows());
 
-    TableDesc desc = new TableDescImpl("employee", employeeMeta,
-        sm.getTablePath("employee"));
-    catalog.addTable(desc);
+    employee = new TableDescImpl("employee", employeeMeta, employeePath);
+    catalog.addTable(employee);
     analyzer = new QueryAnalyzer(catalog);
     planner = new LogicalPlanner(catalog);
   }
@@ -107,13 +104,16 @@ public class TestExternalSortExec {
     util.shutdownCatalogCluster();
   }
 
-  String[] QUERIES = { "select managerId, empId, deptName from employee order by managerId, empId desc" };
+  String[] QUERIES = {
+      "select managerId, empId, deptName from employee order by managerId, empId desc"
+  };
 
   @Test
   public final void testNext() throws IOException {
-    Fragment[] frags = sm.split("employee");
-    Path workDir = new Path(baseDir, TestExternalSortExec.class.getName());
-    TaskAttemptContext2 ctx = new TaskAttemptContext2(conf,
+    Fragment[] frags = sm.splitNG(conf, "employee", employee.getMeta(), employee.getPath(),
+        Integer.MAX_VALUE);
+    Path workDir = new Path(testDir, TestExternalSortExec.class.getName());
+    TaskAttemptContext ctx = new TaskAttemptContext(conf,
         TUtil.newQueryUnitAttemptId(), new Fragment[] { frags[0] }, workDir);
     PlanningContext context = analyzer.parse(QUERIES[0]);
     LogicalNode plan = planner.createPlan(context);

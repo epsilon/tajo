@@ -203,15 +203,20 @@ public class ClientService extends AbstractService {
       if (queryId.equals(TajoIdUtils.NullQueryId)) {
         builder.setResultCode(ResultCode.OK);
         builder.setState(TajoProtos.QueryState.QUERY_SUCCEEDED);
-        builder.setProgress(1.0f);
-        builder.setExecutionTime(0);
       } else {
         Query query = context.getQuery(queryId).getContext().getQuery();
         if (query != null) {
           builder.setResultCode(ResultCode.OK);
           builder.setState(query.getState());
           builder.setProgress(query.getProgress());
-          builder.setExecutionTime(System.currentTimeMillis() - query.getStartTime());
+          builder.setSubmitTime(query.getAppSubmitTime());
+          builder.setInitTime(query.getInitializationTime());
+          builder.setHasResult(!query.isCreateTableStmt());
+          if (query.getState() == TajoProtos.QueryState.QUERY_SUCCEEDED) {
+            builder.setFinishTime(query.getFinishTime());
+          } else {
+            builder.setFinishTime(System.currentTimeMillis());
+          }
         } else {
           builder.setResultCode(ResultCode.ERROR);
           builder.setErrorMessage("No such query: " + queryId.toString());
@@ -353,12 +358,27 @@ public class ClientService extends AbstractService {
         throw new RemoteException(e);
       }
 
+      FileSystem fs;
+
+      // for legacy table structure
+      Path tablePath = new Path(path, "data");
+      try {
+        fs = path.getFileSystem(conf);
+        if (!fs.exists(tablePath)) {
+          tablePath = path;
+        }
+      } catch (IOException e) {
+        LOG.error(e);
+        return null;
+      }
+
       if (meta.getStat() == null) {
         long totalSize = 0;
         try {
-          totalSize = calculateSize(new Path(path, "data"));
+          totalSize = calculateSize(tablePath);
         } catch (IOException e) {
           LOG.error("Cannot calculate the size of the relation", e);
+          return null;
         }
 
         meta = new TableMetaImpl(meta.getProto());

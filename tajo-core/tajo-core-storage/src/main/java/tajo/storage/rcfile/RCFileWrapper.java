@@ -34,7 +34,6 @@ import tajo.storage.*;
 import tajo.storage.exception.AlreadyExistsStorageException;
 import tajo.util.Bytes;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -42,7 +41,6 @@ public class RCFileWrapper {
 
   public static class RCFileAppender extends FileAppender {
     private FileSystem fs;
-    private Path path;
     private RCFile.Writer writer;
 
     private final boolean statsEnabled;
@@ -54,13 +52,7 @@ public class RCFileWrapper {
 
       fs = path.getFileSystem(conf);
 
-      if (!fs.exists(path.getParent())) {
-//        throw new FileNotFoundException(this.path.toString());
-        throw new FileNotFoundException(path.toString());
-      }
-
       if (fs.exists(path)) {
-//        throw new AlreadyExistsStorageException(this.path);
         throw new AlreadyExistsStorageException(path);
       }
 
@@ -115,6 +107,7 @@ public class RCFileWrapper {
             case DOUBLE:
             case STRING:
             case STRING2:
+            case BYTES:
             case IPv4:
             case IPv6:
               bytes = t.get(i).asByteArray();
@@ -130,7 +123,7 @@ public class RCFileWrapper {
               break;
             }
             default:
-              break;
+              throw new IOException("ERROR: Unsupported Data Type");
           }
         }
       }
@@ -163,7 +156,8 @@ public class RCFileWrapper {
     private FileSystem fs;
     private RCFile.Reader reader;
     private LongWritable rowId;
-    private boolean [] projectMap;
+    private final Column [] projectionSchema;
+    private Integer [] projectionMap;
 
     BytesRefArrayWritable column;
     private boolean more;
@@ -174,28 +168,25 @@ public class RCFileWrapper {
                           Schema target) throws IOException {
       super(conf, schema, new Fragment[] {fragment});
       fs = fragment.getPath().getFileSystem(conf);
+      this.projectionSchema = target.toArray();
 
       ArrayList<Integer> projIds = Lists.newArrayList();
-      projectMap = new boolean[schema.getColumnNum()];
-      for (int i = 0; i < schema.getColumnNum(); i++) {
-        projectMap[i] =
-            target.contains(schema.getColumn(i).getQualifiedName());
-        if (projectMap[i]) {
-          projIds.add(i);
-        }
+      int tid;
+      for (int i = 0; i < target.getColumnNum(); i++) {
+          tid = schema.getColumnId(target.getColumn(i).getQualifiedName());
+          projIds.add(tid);
       }
+      projectionMap = projIds.toArray(new Integer[projIds.size()]);
       ColumnProjectionUtils.setReadColumnIDs(conf, projIds);
 
       reader = new RCFile.Reader(fs, fragment.getPath(), conf);
       if (fragment.getStartOffset() > reader.getPosition()) {
         reader.sync(fragment.getStartOffset()); // sync to start
       }
-
       end = fragment.getStartOffset() + fragment.getLength();
       more = fragment.getStartOffset() < end;
 
       rowId = new LongWritable();
-
       column = new BytesRefArrayWritable();
     }
 
@@ -237,72 +228,76 @@ public class RCFileWrapper {
       reader.getCurrentRow(column);
       column.resetValid(schema.getColumnNum());
       Tuple tuple = new VTuple(schema.getColumnNum());
-      for (int i = 0; i < projectMap.length; i++) {
-        if (!projectMap[i]) {
-          tuple.put(i, DatumFactory.createNullDatum());
+      int tid; // target column id
+      for (int i = 0; i < projectionMap.length; i++) {
+        tid = projectionMap[i];
+        // if the column is byte[0], it presents a NULL value.
+        if (column.get(tid).getLength() == 0) {
+          tuple.put(tid, DatumFactory.createNullDatum());
         } else {
-          switch (schema.getColumn(i).getDataType()) {
+          switch (projectionSchema[i].getDataType()) {
             case BOOLEAN:
-              tuple.put(i,
-                  DatumFactory.createBool(column.get(i).getBytesCopy()[0]));
+              tuple.put(tid,
+                  DatumFactory.createBool(column.get(tid).getBytesCopy()[0]));
               break;
             case BYTE:
-              tuple.put(i,
-                  DatumFactory.createByte(column.get(i).getBytesCopy()[0]));
+              tuple.put(tid,
+                  DatumFactory.createByte(column.get(tid).getBytesCopy()[0]));
               break;
             case CHAR:
-              tuple.put(i,
-                  DatumFactory.createChar(column.get(i).getBytesCopy()[0]));
+              tuple.put(tid,
+                  DatumFactory.createChar(column.get(tid).getBytesCopy()[0]));
               break;
 
             case SHORT:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createShort(Bytes.toShort(
-                      column.get(i).getBytesCopy())));
+                      column.get(tid).getBytesCopy())));
               break;
             case INT:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createInt(Bytes.toInt(
-                      column.get(i).getBytesCopy())));
+                      column.get(tid).getBytesCopy())));
               break;
 
             case LONG:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createLong(Bytes.toLong(
-                      column.get(i).getBytesCopy())));
+                      column.get(tid).getBytesCopy())));
               break;
 
             case FLOAT:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createFloat(Bytes.toFloat(
-                      column.get(i).getBytesCopy())));
+                      column.get(tid).getBytesCopy())));
               break;
 
             case DOUBLE:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createDouble(Bytes.toDouble(
-                      column.get(i).getBytesCopy())));
+                      column.get(tid).getBytesCopy())));
               break;
 
             case IPv4:
-              tuple.put(i,
-                  DatumFactory.createIPv4(column.get(i).getBytesCopy()));
+              tuple.put(tid,
+                  DatumFactory.createIPv4(column.get(tid).getBytesCopy()));
               break;
 
             case STRING:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createString(
-                      Bytes.toString(column.get(i).getBytesCopy())));
+                      Bytes.toString(column.get(tid).getBytesCopy())));
               break;
 
             case STRING2:
-              tuple.put(i,
+              tuple.put(tid,
                   DatumFactory.createString2(
-                      column.get(i).getBytesCopy()));
+                      column.get(tid).getBytesCopy()));
+              break;
 
             case BYTES:
-              tuple.put(i,
-                  DatumFactory.createBytes(column.get(i).getBytesCopy()));
+              tuple.put(tid,
+                  DatumFactory.createBytes(column.get(tid).getBytesCopy()));
               break;
 
             default:

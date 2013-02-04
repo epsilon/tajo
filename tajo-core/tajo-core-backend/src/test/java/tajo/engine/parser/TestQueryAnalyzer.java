@@ -148,16 +148,8 @@ public class TestQueryAnalyzer {
       "select name, score from people order by score asc, age desc null first", // 5
       // only expr
       "select 7 + 8", // 6
-      // create table test
-      "store1 := select name, score from people order by score asc, age desc null first",// 7
-      // create table test
-      "create table store2 as select name, score from people order by score asc, age desc null first", // 8
-      // create index
-      "create unique index score_idx on people using hash (score, age desc null first) with ('fillfactor' = 70)", // 9
-      // create table def
-      "create table table1 (name string, age int, earn long, score float) using csv location '/tmp/data' with ('csv.delimiter'='|')", // 10
       // limit test
-      "select id, name, score, age from people limit 3" // 11
+      "select id, name, score, age from people limit 3" // 7
 
   };
  
@@ -167,7 +159,21 @@ public class TestQueryAnalyzer {
     assertEquals(1, block.getFromTables().length);
     assertEquals("people", block.getFromTables()[0].getTableName());
   }
-  
+
+  @Test
+  public final void testOnlyExpr() {
+    QueryBlock block = (QueryBlock) analyzer.parse(QUERIES[6]).getParseTree();
+    EvalNode node = block.getTargetList()[0].getEvalTree();
+    assertEquals(Type.PLUS, node.getType());
+  }
+
+  @Test
+  public void testLimit() {
+    QueryBlock queryBlock =
+        (QueryBlock) analyzer.parse(QUERIES[7]).getParseTree();
+    assertEquals(3, queryBlock.getLimitClause().getLimitRow());
+  }
+
   private String[] GROUP_BY = { 
       "select age, sumtest(score) as total from people group by age having sumtest(score) > 30", // 0
       "select name, age, sumtest(score) total from people group by cube (name,age)", // 1
@@ -267,23 +273,86 @@ public class TestQueryAnalyzer {
     assertEquals(false, block.getSortKeys()[1].isAscending());
     assertEquals(true, block.getSortKeys()[1].isNullFirst());
   }
-  
-  @Test
-  public final void testCreateTableAsSelect() {
-    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(QUERIES[7]).getParseTree();
-    assertEquals("store1", stmt.getTableName());
-    testOrderByCluse(stmt.getSelectStmt());
 
-    stmt = (CreateTableStmt) analyzer.parse(QUERIES[8]).getParseTree();
-    assertEquals("store2", stmt.getTableName());
-    testOrderByCluse(stmt.getSelectStmt());
+  static final String [] createTableStmts = {
+    "create table table1 (name string, age int)",
+    "create table table1 (name string, age int) using rcfile",
+    "create table table1 (name string, age int) using rcfile with ('rcfile.buffer'=4096)",
+    // create table test
+    "create table store1 as select name, score from people order by score asc, age desc null first",// 0
+    // create table test
+    "create table store1 (c1 string, c2 long) as select name, score from people order by score asc, age desc null first",// 1
+    // create table test
+    "create table store2 using rcfile with ('rcfile.buffer' = 4096) as select name, score from people order by score asc, age desc null first", // 2
+    // create table def
+    "create table table1 (name string, age int, earn long, score float) using rcfile with ('rcfile.buffer' = 4096)", // 4
+    // create table def with location
+    "create external table table1 (name string, age int, earn long, score float) using csv with ('csv.delimiter'='|') location '/tmp/data'" // 5
+  };
+
+  @Test
+  public final void testCreateTable1() {
+    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(createTableStmts[0]).getParseTree();
+    assertEquals("table1", stmt.getTableName());
+    assertTrue(stmt.hasDefinition());
+
+    stmt = (CreateTableStmt) analyzer.parse(createTableStmts[1]).getParseTree();
+    assertEquals("table1", stmt.getTableName());
+    assertTrue(stmt.hasDefinition());
+    assertTrue(stmt.hasStoreType());
+    assertEquals(StoreType.RCFILE, stmt.getStoreType());
+
+    stmt = (CreateTableStmt) analyzer.parse(createTableStmts[2]).getParseTree();
+    assertEquals("table1", stmt.getTableName());
+    assertTrue(stmt.hasDefinition());
+    assertTrue(stmt.hasStoreType());
+    assertEquals(StoreType.RCFILE, stmt.getStoreType());
+    assertTrue(stmt.hasOptions());
+    assertEquals("4096", stmt.getOptions().get("rcfile.buffer"));
   }
   
   @Test
-  public final void testCreateTableDef() {
-    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(QUERIES[10]).getParseTree();
+  public final void testCreateTableAsSelect() {
+    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(createTableStmts[3]).getParseTree();
+    assertEquals("store1", stmt.getTableName());
+    testOrderByCluse(stmt.getSelectStmt());
+
+    stmt = (CreateTableStmt) analyzer.parse(createTableStmts[4]).getParseTree();
+    assertEquals("store1", stmt.getTableName());
+    testOrderByCluse(stmt.getSelectStmt());
+    assertTrue(stmt.hasTableDef());
+
+    stmt = (CreateTableStmt) analyzer.parse(createTableStmts[5]).getParseTree();
+    assertEquals("store2", stmt.getTableName());
+    assertEquals(StoreType.RCFILE, stmt.getStoreType());
+    assertEquals("4096", stmt.getOptions().get("rcfile.buffer"));
+    testOrderByCluse(stmt.getSelectStmt());
+  }
+
+  @Test
+  public final void testCreateTableDef1() {
+    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(createTableStmts[6]).getParseTree();
     assertEquals("table1", stmt.getTableName());
-    Schema def = stmt.getSchema();
+    Schema def = stmt.getTableDef();
+    assertEquals("name", def.getColumn(0).getColumnName());
+    assertEquals(DataType.STRING, def.getColumn(0).getDataType());
+    assertEquals("age", def.getColumn(1).getColumnName());
+    assertEquals(DataType.INT, def.getColumn(1).getDataType());
+    assertEquals("earn", def.getColumn(2).getColumnName());
+    assertEquals(DataType.LONG, def.getColumn(2).getDataType());
+    assertEquals("score", def.getColumn(3).getColumnName());
+    assertEquals(DataType.FLOAT, def.getColumn(3).getDataType());
+    assertEquals(StoreType.RCFILE, stmt.getStoreType());
+    assertFalse(stmt.hasPath());
+    assertTrue(stmt.hasOptions());
+    assertEquals("4096", stmt.getOptions().get("rcfile.buffer"));
+  }
+  
+  @Test
+  public final void testCreateTableDef2() {
+    CreateTableStmt stmt = (CreateTableStmt) analyzer.parse(createTableStmts[7]).getParseTree();
+    assertEquals("table1", stmt.getTableName());
+    Schema def = stmt.getTableDef();
     assertEquals("name", def.getColumn(0).getColumnName());
     assertEquals(DataType.STRING, def.getColumn(0).getDataType());
     assertEquals("age", def.getColumn(1).getColumnName());
@@ -297,10 +366,14 @@ public class TestQueryAnalyzer {
     assertTrue(stmt.hasOptions());
     assertEquals("|", stmt.getOptions().get("csv.delimiter"));
   }
+
+  // create index
+  final static String createIndexStmt =
+      "create unique index score_idx on people using hash (score, age desc null first) with ('fillfactor' = 70)";
   
   @Test 
   public final void testCreateIndex() {
-    CreateIndexStmt stmt = (CreateIndexStmt) analyzer.parse(QUERIES[9]).getParseTree();
+    CreateIndexStmt stmt = (CreateIndexStmt) analyzer.parse(createIndexStmt).getParseTree();
     assertEquals("score_idx", stmt.getIndexName());
     assertTrue(stmt.isUnique());
     assertEquals("people", stmt.getTableName());
@@ -317,13 +390,6 @@ public class TestQueryAnalyzer {
     
     assertTrue(stmt.hasParams());
     assertEquals("70", stmt.getParams().get("fillfactor"));
-  }
-  
-  @Test
-  public final void testOnlyExpr() {
-    QueryBlock block = (QueryBlock) analyzer.parse(QUERIES[6]).getParseTree();
-    EvalNode node = block.getTargetList()[0].getEvalTree();
-    assertEquals(Type.PLUS, node.getType());
   }
   
   private String [] INVALID_QUERIES = {
@@ -587,10 +653,29 @@ public class TestQueryAnalyzer {
     assertEquals(t1,t2);
   }
 
+  final static String [] CopyStmt = {
+      "copy lineitem from '/tmp/tpch/lineitem' format rcfile",
+      "copy lineitem from '/tmp/tpch/lineitem' format csv with ('csv.delimiter' = '|')"
+  };
+
   @Test
-  public void testLimit() {
-    QueryBlock queryBlock =
-        (QueryBlock) analyzer.parse(QUERIES[11]).getParseTree();
-    assertEquals(3, queryBlock.getLimitClause().getLimitRow());
+  public void testCopy1() {
+    CopyStmt copyStmt =
+        (CopyStmt) analyzer.parse(CopyStmt[0]).getParseTree();
+    assertEquals("lineitem", copyStmt.getTableName());
+    assertEquals(new Path("/tmp/tpch/lineitem"), copyStmt.getPath());
+    assertEquals(StoreType.RCFILE, copyStmt.getStoreType());
+    assertFalse(copyStmt.hasParams());
+  }
+
+  @Test
+  public void testCopy2() {
+    CopyStmt copyStmt =
+        (CopyStmt) analyzer.parse(CopyStmt[1]).getParseTree();
+    assertEquals("lineitem", copyStmt.getTableName());
+    assertEquals(new Path("/tmp/tpch/lineitem"), copyStmt.getPath());
+    assertEquals(StoreType.CSV, copyStmt.getStoreType());
+    assertTrue(copyStmt.hasParams());
+    assertEquals("|", copyStmt.getParams().get("csv.delimiter"));
   }
 }

@@ -1,13 +1,9 @@
 /*
  * Copyright 2012 Database Lab., Korea Univ.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -61,11 +57,9 @@ public class BSTIndexScanExec extends PhysicalExec {
       this.qualCtx = this.qual.newContext();
     }
     this.datum = datum;
-    
-    Fragment[] frags = new Fragment[1];
-    frags[0] = fragment;
-    this.fileScanner = (SeekableScanner)sm.getScanner(fragment.getMeta(),
-        frags, this.inSchema);
+
+    this.fileScanner = (SeekableScanner)StorageManager.getScanner(context.getConf(),
+        fragment.getMeta(), fragment, outSchema);
     this.projector = new Projector(inSchema, outSchema, scanNode.getTargets());
     this.evalContexts = projector.renew();
 

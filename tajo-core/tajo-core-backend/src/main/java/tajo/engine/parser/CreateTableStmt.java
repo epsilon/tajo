@@ -21,22 +21,20 @@ public class CreateTableStmt extends ParseTree {
   private QueryBlock selectStmt;
   private Options options;
 
-  private CreateTableStmt(final PlanningContext context,
-                          final String tableName) {
+  public CreateTableStmt(final PlanningContext context,
+                         final String tableName) {
     super(context, StatementType.CREATE_TABLE);
-    addTableRef(tableName, tableName);
     this.tableName = tableName;
   }
 
   public CreateTableStmt(final PlanningContext context,
                          final String tableName, final Schema schema,
-                         StoreType storeType, final Path path) {
+                         StoreType storeType) {
     super(context, StatementType.CREATE_TABLE);
     addTableRef(tableName, tableName);
     this.tableName = tableName;
     this.schema = schema;
     this.storeType = storeType;
-    this.path = path;
   }
 
   public CreateTableStmt(final PlanningContextImpl context,
@@ -52,7 +50,7 @@ public class CreateTableStmt extends ParseTree {
     return this.tableName;
   }
   
-  public final boolean hasSelectStmt() {
+  public final boolean hasQueryBlock() {
     return this.selectStmt != null;
   }
   
@@ -61,20 +59,31 @@ public class CreateTableStmt extends ParseTree {
   }
   
   public final boolean hasDefinition() {
-    return this.schema != null && this.storeType != null
-        && this.path != null;
+    return this.schema != null;
+  }
+
+  public boolean hasTableDef() {
+    return this.schema != null;
+  }
+
+  public void setTableDef(Schema schema) {
+    this.schema = schema;
   }
   
-  public final Schema getSchema() {
+  public final Schema getTableDef() {
     return this.schema;
+  }
+
+  public boolean hasStoreType() {
+    return this.storeType != null;
+  }
+
+  public void setStoreType(StoreType type) {
+    this.storeType = type;
   }
   
   public final StoreType getStoreType() {
     return this.storeType;
-  }
-  
-  public final Path getPath() {
-    return this.path;
   }
   
   public boolean hasOptions() {
@@ -87,5 +96,18 @@ public class CreateTableStmt extends ParseTree {
   
   public Options getOptions() {
     return this.options;
+  }
+
+
+  public boolean hasPath() {
+    return this.path != null;
+  }
+
+  public void setPath(Path path) {
+    this.path = path;
+  }
+
+  public final Path getPath() {
+    return this.path;
   }
 }

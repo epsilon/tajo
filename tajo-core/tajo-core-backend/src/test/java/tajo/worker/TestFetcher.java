@@ -6,8 +6,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.junit.Before;
 import org.junit.Test;
-import tajo.WorkerTestingUtil;
 import tajo.conf.TajoConf;
+import tajo.util.CommonTestingUtil;
 import tajo.worker.dataserver.HttpDataServer;
 import tajo.worker.dataserver.retriever.DataRetriever;
 import tajo.worker.dataserver.retriever.DirectoryRetriever;
@@ -31,9 +31,9 @@ public class TestFetcher {
 
   @Before
   public void setUp() throws Exception {
-    WorkerTestingUtil.buildTestDir(TEST_DATA);
-    WorkerTestingUtil.buildTestDir(INPUT_DIR);
-    WorkerTestingUtil.buildTestDir(OUTPUT_DIR);
+    CommonTestingUtil.getTestDir(TEST_DATA);
+    CommonTestingUtil.getTestDir(INPUT_DIR);
+    CommonTestingUtil.getTestDir(OUTPUT_DIR);
   }
 
   @Test

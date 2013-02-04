@@ -184,22 +184,6 @@
     </dependency>
     <dependency>
       <groupId>kr.ac.korea.dbserver</groupId>
-      <artifactId>tajo-catalog-common</artifactId>
-      <scope>compile</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>kr.ac.korea.dbserver</groupId>
-      <artifactId>tajo-catalog-client</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>kr.ac.korea.dbserver</groupId>
-      <artifactId>tajo-catalog-server</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>kr.ac.korea.dbserver</groupId>
       <artifactId>tajo-core-backend</artifactId>
       <type>jar</type>
     </dependency>

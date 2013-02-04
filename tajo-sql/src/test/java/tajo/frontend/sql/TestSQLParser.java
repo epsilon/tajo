@@ -492,7 +492,6 @@ public class TestSQLParser {
       "col is not null", // 28
       "col = null", // 29
       "col != null" // 30
-
   };
 
   public static SQLParser parseExpr(String expr) {
@@ -503,67 +502,84 @@ public class TestSQLParser {
     return parser;
   }
 
+  static String [] arithmeticExprs = {
+      "1 + 2", // 0
+      "3 - 4", // 1
+      "5 * 6", // 2
+      "7 / 8", // 3
+      "10 % 2", // 4
+      "(1 + 2) * (6 / 3)" // 5
+  };
+
   @Test
   public void testArithEvalTree() throws RecognitionException {
-    SQLParser p = parseExpr(expressions[0]);
+    SQLParser p = parseExpr(arithmeticExprs[0]);
     CommonTree node = (CommonTree) p.numeric_value_expression().getTree();
 
     assertEquals(node.getText(), "+");
     assertEquals(node.getChild(0).getText(), "1");
     assertEquals(node.getChild(1).getText(), "2");
 
-    p = parseExpr(expressions[1]);
+    p = parseExpr(arithmeticExprs[1]);
     node = (CommonTree) p.numeric_value_expression().getTree();
     assertEquals(node.getText(), "-");
     assertEquals(node.getChild(0).getText(), "3");
     assertEquals(node.getChild(1).getText(), "4");
 
-    p = parseExpr(expressions[2]);
+    p = parseExpr(arithmeticExprs[2]);
     node = (CommonTree) p.numeric_value_expression().getTree();
     assertEquals(node.getText(), "*");
     assertEquals(node.getChild(0).getText(), "5");
     assertEquals(node.getChild(1).getText(), "6");
 
-    p = parseExpr(expressions[3]);
+    p = parseExpr(arithmeticExprs[3]);
     node = (CommonTree) p.numeric_value_expression().getTree();
     assertEquals(node.getText(), "/");
     assertEquals(node.getChild(0).getText(), "7");
     assertEquals(node.getChild(1).getText(), "8");
 
-    p = parseExpr(expressions[4]);
+    p = parseExpr(arithmeticExprs[4]);
     node = (CommonTree) p.numeric_value_expression().getTree();
     assertEquals(node.getText(), "%");
     assertEquals(node.getChild(0).getText(), "10");
     assertEquals(node.getChild(1).getText(), "2");
   }
 
+  static String [] comparisonExpr = {
+      "1 * 2 > 3 / 4", // 5
+      "1 * 2 < 3 / 4", // 6
+      "1 * 2 = 3 / 4", // 7
+      "1 * 2 != 3 / 4", // 8
+      "1 * 2 <> 3 / 4", // 9
+  };
+
   @Test
   public void testCompEvalTree() throws RecognitionException {
-    SQLParser p = parseExpr(expressions[5]);
+    SQLParser p = parseExpr(comparisonExpr[0]);
     CommonTree node = (CommonTree) p.comparison_predicate().getTree();
     assertEquals(node.getText(), ">");
     assertEquals("*", node.getChild(0).getText());
     assertEquals("/", node.getChild(1).getText());
 
-    p = parseExpr(expressions[6]);
+    p = parseExpr(comparisonExpr[1]);
     node = (CommonTree) p.comparison_predicate().getTree();
     assertEquals(node.getText(), "<");
     assertEquals(node.getChild(0).getText(), "*");
     assertEquals(node.getChild(1).getText(), "/");
 
-    p = parseExpr(expressions[7]);
+    p = parseExpr(comparisonExpr[2]);
     node = (CommonTree) p.comparison_predicate().getTree();
     assertEquals(node.getText(), "=");
     assertEquals(node.getChild(0).getText(), "*");
     assertEquals(node.getChild(1).getText(), "/");
 
-    p = parseExpr(expressions[8]);
+    p = parseExpr(comparisonExpr[3]);
     node = (CommonTree) p.comparison_predicate().getTree();
     assertEquals(node.getText(), "!=");
     assertEquals(node.getChild(0).getText(), "*");
     assertEquals(node.getChild(1).getText(), "/");
 
-    p = parseExpr(expressions[9]);
+    p = parseExpr(comparisonExpr[4]);
     node = (CommonTree) p.comparison_predicate().getTree();
     assertEquals(node.getText(), "<>");
     assertEquals(node.getChild(0).getText(), "*");

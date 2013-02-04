@@ -45,13 +45,11 @@ public class TestSelectQuery {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    tpch = new TpchTestBase();
-    tpch.setUp();
+    tpch = TpchTestBase.getInstance();
   }
 
   @AfterClass
   public static void tearDown() throws Exception {
-    tpch.tearDown();
   }
   
   @Test
@@ -297,12 +295,8 @@ public class TestSelectQuery {
   @Test
   public final void testCreateAfterSelect() throws Exception {
     ResultSet res = tpch.execute(
-        "orderkeys := select l_orderkey from lineitem");
-    int count = 0;
-    for (;res.next();) {
-      count++;
-    }
-    assertEquals(5, count);
+        "create table orderkeys as select l_orderkey from lineitem");
+    assertNull(res);
   }
 
   //@Test

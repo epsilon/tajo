@@ -45,6 +45,8 @@ import tajo.QueryConf;
 import tajo.conf.TajoConf;
 import tajo.master.QueryMaster.QueryContext;
 import tajo.master.TaskRunnerEvent.EventType;
+import tajo.master.event.QueryEvent;
+import tajo.master.event.QueryEventType;
 import tajo.master.event.TaskRunnerLaunchEvent;
 import tajo.pullserver.PullServerAuxService;
 
@@ -277,7 +279,7 @@ public class TaskRunnerLauncherImpl extends AbstractService implements TaskRunne
     vargs.add("-Xmx2000m");
     // Set Remote Debugging
     //if (!context.getQuery().getSubQuery(event.getSubQueryId()).isLeafQuery()) {
-    //vargs.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
+      //vargs.add("-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
     //}
     // Set class name
     vargs.add("tajo.worker.TaskRunner");
@@ -287,8 +289,8 @@ public class TaskRunnerLauncherImpl extends AbstractService implements TaskRunne
     vargs.add(event.getContainerMgrAddress()); // nodeId
     vargs.add(event.getContainerId().toString()); // containerId
 
-    vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/taskRunner.stdout");
-    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/taskRunner.stderr");
+    vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
+    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
 
     // Get final commmand
     StringBuilder command = new StringBuilder();
@@ -431,6 +433,10 @@ public class TaskRunnerLauncherImpl extends AbstractService implements TaskRunne
         // after launching, send launched event to task attempt to move
         // it from ASSIGNED to RUNNING state
 //      context.getEventHandler().handle(new AMContainerEventLaunched(containerID, port));
+
+        // this is workaround code
+        context.getEventHandler().handle(new QueryEvent(context.getQueryId(), QueryEventType.INIT_COMPLETED));
+
         this.state = ContainerState.RUNNING;
         this.hostName = event.getContainerMgrAddress().split(":")[0];
         context.addContainer(containerID, this);

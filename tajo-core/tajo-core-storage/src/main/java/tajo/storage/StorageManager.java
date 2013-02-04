@@ -1,20 +1,32 @@
-/**
- * 
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package tajo.storage;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import tajo.catalog.Schema;
 import tajo.catalog.TableMeta;
 import tajo.catalog.TableMetaImpl;
 import tajo.catalog.proto.CatalogProtos.TableProto;
-import tajo.common.exception.NotImplementedException;
 import tajo.conf.TajoConf;
 import tajo.conf.TajoConf.ConfVars;
-import tajo.storage.exception.AlreadyExistsStorageException;
 import tajo.storage.rcfile.RCFileWrapper;
+import tajo.storage.trevni.TrevniAppender;
+import tajo.storage.trevni.TrevniScanner;
 import tajo.util.FileUtil;
 
 import java.io.FileNotFoundException;
@@ -22,10 +34,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static tajo.storage.rcfile.RCFileWrapper.RCFileScanner;
+
 /**
- * 테이블 Scanner와 Appender를 열고 관리한다.
- * 
- * @author Hyunsik Choi
+ * StorageManager
  *
  */
 public class StorageManager {
@@ -69,54 +81,6 @@ public class StorageManager {
 	  return this.dataRoot;
 	}
 	
-	public Path initTableBase(TableMeta meta, String tableName) 
-	    throws IOException {
-	  return initTableBase(new Path(dataRoot,tableName), meta);
-	}
-	
-	public Path initLocalTableBase(Path tablePath, TableMeta meta) throws IOException {
-	  FileSystem fs = FileSystem.getLocal(conf);
-    if (fs.exists(tablePath)) {
-      throw new AlreadyExistsStorageException(tablePath);
-    } else {
-      fs.mkdirs(tablePath);
-    }
-    Path dataDir = new Path(tablePath,"data");
-
-    if (meta != null) {
-      writeTableMetaLocal(tablePath, meta);
-    }
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Initialized table root (" + tablePath + ")");
-    }
-    return dataDir;
-	}
-	
-	
-	public Path initTableBase(Path tablePath, TableMeta meta) 
-	    throws IOException {
-	  FileSystem fs = tablePath.getFileSystem(conf);
-    if (fs.exists(tablePath)) {
-      throw new AlreadyExistsStorageException(tablePath);
-    }
-
-    fs.mkdirs(tablePath);
-    Path dataDir = new Path(tablePath,"data");
-    fs.mkdirs(dataDir);
-    if (meta != null)
-      writeTableMeta(tablePath, meta);
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Initialized table root (" + tablePath + ")");
-    }
-    return dataDir;
-	}
-	
-	public void delete(String tableName) throws IOException {
-	  fs.delete(new Path(dataRoot, tableName), true);
-	}
-	
   public void delete(Path tablePath) throws IOException {
     FileSystem fs = tablePath.getFileSystem(conf);
     fs.delete(tablePath, true);
@@ -125,259 +89,78 @@ public class StorageManager {
   public Path getTablePath(String tableName) {
     return new Path(dataRoot, tableName);
   }
-	
-	public Scanner getTableScanner(String tableName) throws IOException {
-	  return getTableScanner(new Path(dataRoot,tableName));
-	}
-	
-	public Scanner getTableScanner(Path tablePath) throws IOException {
-	  TableMeta info = getTableMeta(tablePath);
-    Fragment [] tablets = split(tablePath);
-    return getScanner(info, tablets);
-	}
-	
-	public Scanner getScanner(String tableName, String fileName) 
-	    throws IOException {
-	  TableMeta meta = getTableMeta(getTablePath(tableName));
-	  Path filePath = StorageUtil.concatPath(dataRoot, tableName, 
-	      "data", fileName);
-	  FileSystem fs = filePath.getFileSystem(conf);
-	  FileStatus status = fs.getFileStatus(filePath);
-	  Fragment tablet = new Fragment(tableName+"_1", status.getPath(), 
-	      meta, 0l , status.getLen(), null);
-	  
-	  return getScanner(meta, new Fragment[] {tablet});
-	}
 
-  public Scanner getScannerNG(String tableName, TableMeta meta, Path tablePath)
+  public static Scanner getScanner(Configuration conf, TableMeta meta, Path path)
       throws IOException {
-
-    FileSystem fs = tablePath.getFileSystem(conf);
-    Fragment [] fragments = splitNG(tableName, meta, tablePath, fs.getDefaultBlockSize());
-    return getScanner(meta, fragments);
+    FileSystem fs = path.getFileSystem(conf);
+    FileStatus status = fs.getFileStatus(path);
+    Fragment fragment = new Fragment(path.getName(), path, meta, 0, status.getLen(), null);
+    return getScanner(conf, meta, fragment);
   }
 
-  public Scanner getLocalScanner(Path tablePath, String fileName)
+  public static Scanner getScanner(Configuration conf, TableMeta meta, Fragment fragment)
       throws IOException {
-    TableMeta meta = getLocalTableMeta(tablePath);
-    Path filePath = new Path(tablePath, fileName);
-    TajoConf c = new TajoConf(conf);
-    c.set("fs.default.name", "file:///");
-    FileSystem fs = FileSystem.getLocal(c);
-    FileStatus status = fs.getFileStatus(filePath);
-    Fragment tablet = new Fragment(tablePath.getName(), status.getPath(),
-        meta, 0l , status.getLen(), null);
-
-    Scanner scanner = null;
-
-    switch(meta.getStoreType()) {
-      case RAW: {
-        scanner = new RowFile2(c).
-            openScanner(meta.getSchema(), new Fragment [] {tablet});
-        break;
-      }
-      case CSV: {
-        scanner = new CSVFile2(c).openScanner(meta.getSchema(), new Fragment [] {tablet});
-        break;
-      }
-    }
-
-    return scanner;
-  }
-	
-	public Scanner getScanner(TableMeta meta, Fragment [] tablets) throws IOException {
-    Scanner scanner = null;
-    
-    switch(meta.getStoreType()) {
-    case RAW: {
-      scanner = new RowFile2(conf).
-          openScanner(meta.getSchema(), tablets);     
-      break;
-    }
-
-    case CSV: {
-      if (tablets.length == 1) {
-        scanner = new CSVFile(conf).openSingleScanner(meta.getSchema(), tablets[0]);
-      } else {
-        scanner = new CSVFile2(conf).openScanner(meta.getSchema(), tablets);
-      }
-      break;
-    }
-    }
-    
-    return scanner;
+    return getScanner(conf, meta, fragment, meta.getSchema());
   }
 
-  public Scanner getScanner(TableMeta meta, Fragment [] tablets, Schema inputSchema) throws IOException {
-    Scanner scanner = null;
-
-    switch(meta.getStoreType()) {
-    case RAW: {
-      scanner = new RowFile2(conf).
-      openScanner(inputSchema, tablets);
-      break;
-    }
-    case CSV: {
-      if (tablets.length == 1) {
-        scanner = new CSVFile(conf).openSingleScanner(meta.getSchema(), tablets[0]);
-      } else {
-        scanner = new CSVFile2(conf).openScanner(inputSchema, tablets);
-      }
-      break;
-    }
-    }
-
-    return scanner;
-  }
-  
-  public Scanner getScanner(TableMeta meta, Fragment fragment) throws IOException {
-    Scanner scanner = null;
-    
-    switch(meta.getStoreType()) {
-    case RAW: {
-//      scanner = new RowFile(conf).
-//          openScanner(meta.getSchema(), fragment);   
-      throw new NotImplementedException();
-    }
-    case CSV: {
-      scanner = new CSVFile(conf).openSingleScanner(meta.getSchema(), fragment);
-      break;
-    }
-    }
-    
-    return scanner;
-  }
-
-  public Scanner getScanner(TableMeta meta, Fragment fragment, Schema inputSchema) throws IOException {
-    Scanner scanner = null;
-
-    switch(meta.getStoreType()) {
-      case RAW: {
-//        scanner = new RowFile(conf).
-//            openScanner(inputSchema, tablets);
-        throw new NotImplementedException();
-      }
-      case CSV: {
-        scanner = new CSVFile(conf).openSingleScanner(inputSchema, fragment);
-        break;
-      }
-    }
-
-    return scanner;
-  }
-	
-	/**
-	 * 파일을 outputPath에 출력한다. writeMeta가 true라면 TableMeta를 테이블 디렉토리에 저장한다.
-	 *
-	 * @param meta 테이블 정보
-   * @param filename
-	 * @return
-	 * @throws IOException
-	 */
-	public Appender getAppender(TableMeta meta, Path filename) 
-	    throws IOException {
-	  Appender appender = null;
-    switch(meta.getStoreType()) {
-    case RAW: {
-      appender = new RowFile2(conf).getAppender(meta,
-          filename);
-      break;
-    }
-
-    case RCFILE:
-      appender = new RCFileWrapper.RCFileAppender(conf, meta, filename, true, true);
-      break;
-
-    case CSV: {
-      appender = new CSVFile2(conf).getAppender(meta, filename);
-      break;
-    }
-    }
-    
-    return appender; 
-	}
-	
-	public Appender getLocalAppender(TableMeta meta, Path filename) 
+  public static Scanner getScanner(Configuration conf, TableMeta meta, Fragment fragment,
+                                   Schema target)
       throws IOException {
-	  TajoConf c = new TajoConf(conf);
-    c.set("fs.default.name", "file:///");
-    
-    Appender appender = null;
+    Scanner scanner;
+
     switch(meta.getStoreType()) {
-    case RAW: {
-      appender = new RowFile2(c).getAppender(meta,
-          filename);
-      break;
+      case CSV:
+        scanner = new CSVFile(conf).openSingleScanner(meta.getSchema(), fragment);
+        break;
+      case RAW:
+        scanner = new RawFile.Scanner(conf, meta, fragment.getPath());
+        break;
+      case RCFILE:
+        scanner = new RCFileScanner(conf, meta.getSchema(), fragment, target);
+        break;
+      case ROWFILE:
+        scanner = new RowFile.Scanner(conf, meta.getSchema(), fragment);
+        break;
+      case TREVNI:
+        scanner = new TrevniScanner(conf, meta.getSchema(), fragment, target);
+        break;
+      default:
+        throw new IOException("Unknown Storage Type: " + meta.getStoreType());
     }
-    case CSV: {
-      appender = new CSVFile2(c).getAppender(meta, filename);
-      break;
-    }
-    }
-    
-    return appender;
+
+    return scanner;
   }
-	
-	public Appender getAppender(TableMeta meta, String tableName, String filename) 
-	    throws IOException {
-	  Path filePath = StorageUtil.concatPath(dataRoot, tableName, "data", filename);
-	  return getAppender(meta, filePath);
-	}
-	
-	public Appender getTableAppender(TableMeta meta, String tableName) 
-	    throws IOException {
-	  return getTableAppender(meta, new Path(dataRoot, tableName));
-	}
-	
-	public Appender getTableAppender(TableMeta meta, Path tablePath) throws 
-  IOException {
+
+  public static Appender getAppender(Configuration conf, TableMeta meta, Path path) throws IOException {
     Appender appender;
-    FileSystem fs = tablePath.getFileSystem(conf);    
-    Path tableData = new Path(tablePath, "data");
-    if (!fs.exists(tablePath)) {
-      fs.mkdirs(tableData);
-    } else {
-      throw new AlreadyExistsStorageException(tablePath);
+    switch(meta.getStoreType()) {
+      case CSV:
+        appender = new CSVFile(conf).getAppender(meta, path);
+        break;
+      case RAW:
+        appender = new RawFile.Appender(conf, meta, path);
+        break;
+      case RCFILE:
+        appender = new RCFileWrapper.RCFileAppender(conf, meta, path, true, true);
+        break;
+      case ROWFILE:
+        appender = new RowFile(conf).getAppender(meta, path);
+        break;
+      case TREVNI:
+        appender = new TrevniAppender(conf, meta, path, true);
+        break;
+      default:
+        throw new IOException("Unknown Storage Type");
     }
-
-    Path outputFileName = new Path(tableData, ""+System.currentTimeMillis());   
-
-    appender = getAppender(meta, outputFileName);
-
-    StorageUtil.writeTableMeta(conf, tablePath, meta);
 
     return appender;
   }
-	
-	public TableMeta getTableMeta(String tableName) throws IOException {
-	  Path tableRoot = getTablePath(tableName);
-	  return getTableMeta(tableRoot);
-	}
-	
-	public TableMeta getTableMeta(Path tablePath) throws IOException {
+
+
+  public TableMeta getTableMeta(Path tablePath) throws IOException {
     TableMeta meta;
-    
+
     FileSystem fs = tablePath.getFileSystem(conf);
-    Path tableMetaPath = new Path(tablePath, ".meta");    
-    if(!fs.exists(tableMetaPath)) {
-      throw new FileNotFoundException(".meta file not found in "+tablePath.toString());
-    }
-    
-    FSDataInputStream tableMetaIn = fs.open(tableMetaPath);
-
-    TableProto tableProto = (TableProto) FileUtil.loadProto(tableMetaIn, 
-      TableProto.getDefaultInstance());
-    meta = new TableMetaImpl(tableProto);
-
-    return meta;
-  }
-
-  public TableMeta getLocalTableMeta(Path tablePath) throws IOException {
-    TableMeta meta;
-
-    TajoConf c = new TajoConf(conf);
-    c.set("fs.default.name", "file:///");
-    FileSystem fs = LocalFileSystem.get(c);
     Path tableMetaPath = new Path(tablePath, ".meta");
     if(!fs.exists(tableMetaPath)) {
       throw new FileNotFoundException(".meta file not found in "+tablePath.toString());
@@ -391,18 +174,13 @@ public class StorageManager {
 
     return meta;
   }
-	
-	public FileStatus [] listTableFiles(String tableName) throws IOException {
-	  Path dataPath = new Path(dataRoot,tableName);
-	  return fs.listStatus(new Path(dataPath, "data"));
-	}
-	
-	public Fragment[] split(String tableName) throws IOException {
-	  Path tablePath = new Path(dataRoot, tableName);
-	  return split(tableName, tablePath, fs.getDefaultBlockSize());
-	}
-	
-	public Fragment[] split(String tableName, long fragmentSize) throws IOException {
+
+  public Fragment[] split(String tableName) throws IOException {
+    Path tablePath = new Path(dataRoot, tableName);
+    return split(tableName, tablePath, fs.getDefaultBlockSize());
+  }
+
+  public Fragment[] split(String tableName, long fragmentSize) throws IOException {
     Path tablePath = new Path(dataRoot, tableName);
     return split(tableName, tablePath, fragmentSize);
   }
@@ -425,25 +203,25 @@ public class StorageManager {
 
     return tablets;
   }
-	
-	public Fragment[] split(Path tablePath) throws IOException {
-	  FileSystem fs = tablePath.getFileSystem(conf);
-	  return split(tablePath.getName(), tablePath, fs.getDefaultBlockSize());
-	}
+
+  public Fragment[] split(Path tablePath) throws IOException {
+    FileSystem fs = tablePath.getFileSystem(conf);
+    return split(tablePath.getName(), tablePath, fs.getDefaultBlockSize());
+  }
 
   public Fragment[] split(String tableName, Path tablePath) throws IOException {
     return split(tableName, tablePath, fs.getDefaultBlockSize());
   }
-	
-	private Fragment[] split(String tableName, Path tablePath, long size)
+
+  private Fragment[] split(String tableName, Path tablePath, long size)
       throws IOException {
-	  FileSystem fs = tablePath.getFileSystem(conf);    
-	  
-	  TableMeta meta = getTableMeta(tablePath);
-	  long defaultBlockSize = size;
-    List<Fragment> listTablets = new ArrayList<Fragment>();
+    FileSystem fs = tablePath.getFileSystem(conf);
+
+    TableMeta meta = getTableMeta(tablePath);
+    long defaultBlockSize = size;
+    List<Fragment> listTablets = new ArrayList<>();
     Fragment tablet;
-    
+
     FileStatus[] fileLists = fs.listStatus(new Path(tablePath, "data"));
     for (FileStatus file : fileLists) {
       long remainFileSize = file.getLen();
@@ -470,13 +248,13 @@ public class StorageManager {
     return tablets;
   }
 
-  public Fragment[] splitNG(String tableName, TableMeta meta,
-                            Path tablePath, long size)
+  public static Fragment[] splitNG(Configuration conf, String tableName, TableMeta meta,
+                                   Path tablePath, long size)
       throws IOException {
     FileSystem fs = tablePath.getFileSystem(conf);
 
     long defaultBlockSize = size;
-    List<Fragment> listTablets = new ArrayList<Fragment>();
+    List<Fragment> listTablets = new ArrayList<>();
     Fragment tablet;
 
     FileStatus[] fileLists = fs.listStatus(tablePath);
@@ -504,27 +282,10 @@ public class StorageManager {
 
     return tablets;
   }
-	
-	public FileStatus [] getTableDataFiles(Path tableRoot) throws IOException {
-	  FileSystem fs = tableRoot.getFileSystem(conf);
-	  Path dataPath = new Path(tableRoot, "data");	  
-	  return fs.listStatus(dataPath);
-	}
-	
-	public void writeTableMeta(Path tableRoot, TableMeta meta) 
-	    throws IOException {
-	  FileSystem fs = tableRoot.getFileSystem(conf);
-    FSDataOutputStream out = fs.create(new Path(tableRoot, ".meta"));
-    FileUtil.writeProto(out, meta.getProto());
-    out.flush();
-    out.close();
-	}
 
-  public void writeTableMetaLocal(Path tableRoot, TableMeta meta)
-    throws  IOException {
-    TajoConf c = new TajoConf(conf);
-    c.set("fs.default.name", "file:///");
-    FileSystem fs = LocalFileSystem.get(c);
+  public void writeTableMeta(Path tableRoot, TableMeta meta)
+      throws IOException {
+    FileSystem fs = tableRoot.getFileSystem(conf);
     FSDataOutputStream out = fs.create(new Path(tableRoot, ".meta"));
     FileUtil.writeProto(out, meta.getProto());
     out.flush();
@@ -534,9 +295,16 @@ public class StorageManager {
   public long calculateSize(Path tablePath) throws IOException {
     FileSystem fs = tablePath.getFileSystem(conf);
     long totalSize = 0;
-    Path dataPath = new Path(tablePath, "data");
+    Path oldPath = new Path(tablePath, "data");
+    Path dataPath;
+    if (fs.exists(oldPath)) {
+      dataPath = oldPath;
+    } else {
+      dataPath = tablePath;
+    }
+
     if (fs.exists(dataPath)) {
-      for (FileStatus status : fs.listStatus(new Path(tablePath, "data"))) {
+      for (FileStatus status : fs.listStatus(dataPath)) {
         totalSize += status.getLen();
       }
     }
@@ -586,17 +354,17 @@ public class StorageManager {
    * @throws IOException if zero items.
    */
   protected List<FileStatus> listStatus(Path path) throws IOException {
-    List<FileStatus> result = new ArrayList<FileStatus>();
+    List<FileStatus> result = new ArrayList<>();
     Path[] dirs = new Path[] {path};
     if (dirs.length == 0) {
       throw new IOException("No input paths specified in job");
     }
 
-    List<IOException> errors = new ArrayList<IOException>();
+    List<IOException> errors = new ArrayList<>();
 
     // creates a MultiPathFilter with the hiddenFileFilter and the
     // user provided one (if any).
-    List<PathFilter> filters = new ArrayList<PathFilter>();
+    List<PathFilter> filters = new ArrayList<>();
     filters.add(hiddenFileFilter);
 
     PathFilter inputFilter = new MultiPathFilter(filters);

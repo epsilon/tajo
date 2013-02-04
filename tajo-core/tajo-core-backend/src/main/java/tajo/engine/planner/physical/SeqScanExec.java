@@ -1,13 +1,9 @@
 /*
  * Copyright 2012 Database Lab., Korea Univ.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -26,12 +22,12 @@ import tajo.engine.eval.EvalNode;
 import tajo.engine.planner.Projector;
 import tajo.engine.planner.logical.ScanNode;
 import tajo.storage.*;
+import tajo.util.TUtil;
 
 import java.io.IOException;
 
 public class SeqScanExec extends PhysicalExec {
   private final ScanNode plan;
-  private final StorageManager sm;
   private Scanner scanner = null;
 
   private EvalNode qual = null;
@@ -45,7 +41,6 @@ public class SeqScanExec extends PhysicalExec {
   public SeqScanExec(TaskAttemptContext context, StorageManager sm,
                      ScanNode plan, Fragment[] fragments) throws IOException {
     super(context, plan.getInSchema(), plan.getOutSchema());
-    this.sm = sm;
 
     this.plan = plan;
     this.qual = plan.getQual();
@@ -61,8 +56,14 @@ public class SeqScanExec extends PhysicalExec {
   public void init() throws IOException {
     this.projector = new Projector(inSchema, outSchema, plan.getTargets());
     this.evalContexts = projector.renew();
-    this.scanner = sm.getScanner(fragments[0].getMeta(), fragments,
-        plan.getInSchema());
+
+    if (fragments.length > 0) {
+      this.scanner = new MergeScanner(context.getConf(), fragments[0].getMeta(),
+          TUtil.newList(fragments));
+    } else {
+      this.scanner = StorageManager.getScanner(context.getConf(), fragments[0].getMeta(),
+          fragments[0], plan.getOutSchema());
+    }
   }
 
   @Override
@@ -102,7 +103,7 @@ public class SeqScanExec extends PhysicalExec {
     scanner.close();
   }
 
-  String getTableName() {
+  public String getTableName() {
     return plan.getTableId();
   }
 }

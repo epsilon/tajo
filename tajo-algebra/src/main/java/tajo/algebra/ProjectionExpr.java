@@ -3,14 +3,14 @@ package tajo.algebra;
 import tajo.engine.parser.QueryBlock.Target;
 import java.util.Arrays;
 
-public class ProjectionExpr extends UnaryExpr implements Cloneable {
+public class ProjectionExpr extends UnaryOp implements Cloneable {
   /**
    * the targets are always filled even if the query is 'select *'
    */
   private Target [] targets;
 
 	public ProjectionExpr(Target[] targets) {
-		super(ExprType.PROJECTION);
+		super(OperatorType.PROJECTION);
 		this.targets = targets;
 	}
 	

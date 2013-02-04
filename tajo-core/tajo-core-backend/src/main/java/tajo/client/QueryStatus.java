@@ -24,14 +24,20 @@ public class QueryStatus {
   private QueryId queryId;
   private QueryState state;
   private float progress;
-  private long executionTime;
+  private long submitTime;
+  private long initTime;
+  private long finishTime;
+  private boolean hasResult;
   private String errorText;
 
   public QueryStatus(GetQueryStatusResponse proto) {
     queryId = new QueryId(proto.getQueryId());
     state = proto.getState();
     progress = proto.getProgress();
-    executionTime = proto.getExecutionTime();
+    submitTime = proto.getSubmitTime();
+    initTime = proto.getInitTime();
+    finishTime = proto.getFinishTime();
+    hasResult = proto.getHasResult();
     if (proto.hasErrorMessage()) {
       errorText = proto.getErrorMessage();
     }
@@ -49,8 +55,20 @@ public class QueryStatus {
     return progress;
   }
 
-  public long getExecutionTime() {
-    return this.executionTime;
+  public long getSubmitTime() {
+    return this.submitTime;
+  }
+
+  public long getInitTime() {
+    return this.initTime;
+  }
+
+  public long getFinishTime() {
+    return this.finishTime;
+  }
+
+  public boolean hasResult() {
+    return this.hasResult;
   }
 
   public String getErrorMessage() {

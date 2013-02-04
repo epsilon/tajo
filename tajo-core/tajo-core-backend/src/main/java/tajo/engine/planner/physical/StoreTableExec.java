@@ -1,13 +1,9 @@
 /*
  * Copyright 2012 Database Lab., Korea Univ.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -23,11 +19,12 @@
  */
 package tajo.engine.planner.physical;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import tajo.TaskAttemptContext;
 import tajo.catalog.TCatUtil;
 import tajo.catalog.TableMeta;
-import tajo.catalog.proto.CatalogProtos.StoreType;
 import tajo.engine.planner.logical.StoreTableNode;
 import tajo.storage.Appender;
 import tajo.storage.StorageManager;
@@ -44,34 +41,38 @@ import java.io.IOException;
  */
 public class StoreTableExec extends UnaryPhysicalExec {
   private final StoreTableNode plan;
-  private final StorageManager sm;
   private Appender appender;
   private Tuple tuple;
   
   /**
-   * @throws IOException 
-   * 
+   * @throws java.io.IOException
+   *
    */
   public StoreTableExec(TaskAttemptContext context, StorageManager sm,
       StoreTableNode plan, PhysicalExec child) throws IOException {
     super(context, plan.getInSchema(), plan.getOutSchema(), child);
 
     this.plan = plan;
-    this.sm = sm;
   }
 
   public void init() throws IOException {
     super.init();
 
-    TableMeta meta = TCatUtil.newTableMeta(outSchema, StoreType.CSV);
-    if (context.isInterQuery()) {
-      Path storeTablePath = new Path(context.getWorkDir().getAbsolutePath(), "out");
-      sm.initLocalTableBase(storeTablePath, meta);
-      this.appender = sm.getLocalAppender(meta,
-          StorageUtil.concatPath(storeTablePath, "data", "0"));
+    TableMeta meta;
+    if (plan.hasOptions()) {
+      meta = TCatUtil.newTableMeta(outSchema, plan.getStorageType(), plan.getOptions());
     } else {
-      this.appender = sm.getAppender(meta,plan.getTableName(),
-          context.getTaskId().toString());
+      meta = TCatUtil.newTableMeta(outSchema, plan.getStorageType());
+    }
+
+    if (context.isInterQuery()) {
+      Path storeTablePath = new Path(context.getWorkDir(), "out");
+      FileSystem fs = new RawLocalFileSystem();
+      fs.mkdirs(storeTablePath);
+      this.appender = StorageManager.getAppender(context.getConf(), meta,
+          StorageUtil.concatPath(storeTablePath, "0"));
+    } else {
+      this.appender = StorageManager.getAppender(context.getConf(), meta, context.getOutputPath());
     }
   }
 

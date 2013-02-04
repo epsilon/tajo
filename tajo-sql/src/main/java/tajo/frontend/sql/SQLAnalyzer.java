@@ -4,11 +4,11 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
+import org.antlr.runtime.tree.Tree;
+import tajo.algebra.Expression;
+import tajo.algebra.ExpressionType;
 import tajo.algebra.RelationalAlgebra;
-import tajo.catalog.SortSpec;
-import tajo.engine.parser.NQLParser;
-import tajo.engine.parser.QueryBlock;
-import tajo.engine.parser.StatementType;
+import tajo.catalog.proto.CatalogProtos;
 import tajo.engine.planner.PlanningContext;
 import tajo.engine.query.exception.TQLParseError;
 
@@ -106,6 +106,78 @@ public class SQLAnalyzer {
       }
     }
 
+    return null;
+  }
+
+  public Object createExpression(final Tree ast) {
+    switch(ast.getType()) {
+
+      // constants
+      case SQLParser.Unsigned_Integer:
+        return Integer.parseInt(ast.getText());
+      case SQLParser.Unsigned_Float:
+        return Float.parseFloat(ast.getText());
+      case SQLParser.Unsigned_Large_Integer:
+        return Long.parseLong(ast.getText());
+
+      case SQLParser.Character_String_Literal:
+        return ast.getText();
+
+      // unary expression
+      case SQLParser.NOT:
+        ;
+
+      // binary expressions
+      case SQLParser.LIKE:
+        ;
+
+      case SQLParser.IS:
+        ;
+
+      case SQLParser.AND:
+      case SQLParser.OR:
+        break;
+
+      case SQLParser.Equals_Operator:
+      case SQLParser.Not_Equals_Operator:
+      case SQLParser.Less_Than_Operator:
+      case SQLParser.Less_Or_Equals_Operator:
+      case SQLParser.Greater_Than_Operator:
+      case SQLParser.Greater_Or_Equals_Operator:
+      case SQLParser.Plus_Sign:
+      case SQLParser.Minus_Sign:
+      case SQLParser.Asterisk:
+      case SQLParser.Slash:
+      case SQLParser.Percent:
+        return new Expression(ExpressionType.stringToOperator(ast.getText()),
+            createExpression(ast.getChild(0)),
+            createExpression(ast.getChild(1)));
+
+      // others
+      case SQLParser.COLUMN:
+
+      case SQLParser.FIELD_NAME:
+
+      case SQLParser.FUNCTION:
+        String signature = ast.getText();
+
+        Expression[] givenArgs = new Expression[ast.getChildCount()];
+        CatalogProtos.DataType[] paramTypes = new CatalogProtos.DataType[ast.getChildCount()];
+
+        for (int i = 0; i < ast.getChildCount(); i++) {
+          givenArgs[i] = (Expression) createExpression(ast.getChild(i));
+        }
+
+        break;
+      case SQLParser.COUNT_VAL:
+
+      case SQLParser.COUNT_ROWS:
+
+
+      case SQLParser.CASE:
+
+      default:
+    }
     return null;
   }
 }

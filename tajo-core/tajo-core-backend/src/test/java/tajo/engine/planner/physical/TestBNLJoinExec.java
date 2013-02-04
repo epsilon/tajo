@@ -1,13 +1,7 @@
 /*
- * Copyright 2012 Database Lab., Korea Univ.
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -25,9 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
-import tajo.TajoTestingUtility;
 import tajo.TaskAttemptContext;
-import tajo.WorkerTestingUtil;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;
 import tajo.catalog.proto.CatalogProtos.StoreType;
@@ -42,9 +34,9 @@ import tajo.engine.planner.PlanningContext;
 import tajo.engine.planner.logical.JoinNode;
 import tajo.engine.planner.logical.LogicalNode;
 import tajo.storage.*;
+import tajo.util.CommonTestingUtil;
 import tajo.util.TUtil;
 
-import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -58,17 +50,21 @@ public class TestBNLJoinExec {
   private QueryAnalyzer analyzer;
   private LogicalPlanner planner;
   private StorageManager sm;
+  private Path testDir;
 
   private static int OUTER_TUPLE_NUM = 1000;
   private static int INNER_TUPLE_NUM = 1000;
+
+  private TableDesc employee;
+  private TableDesc people;
 
   @Before
   public void setUp() throws Exception {
     util = new TajoTestingCluster();
     catalog = util.startCatalogCluster().getCatalog();
-    Path workingPath = WorkerTestingUtil.buildTestDir(TEST_PATH);
+    testDir = CommonTestingUtil.getTestDir(TEST_PATH);
     conf = util.getConfiguration();
-    sm = StorageManager.get(conf, workingPath);
+    sm = StorageManager.get(conf, testDir);
 
     Schema schema = new Schema();
     schema.addColumn("managerId", DataType.INT);
@@ -76,9 +72,9 @@ public class TestBNLJoinExec {
     schema.addColumn("memId", DataType.INT);
     schema.addColumn("deptName", DataType.STRING);
 
-    TableMeta employeeMeta = TCatUtil.newTableMeta(schema, StoreType.RAW);
-    sm.initTableBase(employeeMeta, "employee");
-    Appender appender = sm.getAppender(employeeMeta, "employee", "employee");
+    TableMeta employeeMeta = TCatUtil.newTableMeta(schema, StoreType.CSV);
+    Path employeePath = new Path(testDir, "employee.csv");
+    Appender appender = StorageManager.getAppender(conf, employeeMeta, employeePath);
     Tuple tuple = new VTuple(employeeMeta.getSchema().getColumnNum());
     for (int i = 0; i < OUTER_TUPLE_NUM; i++) {
       tuple.put(new Datum[] { DatumFactory.createInt(i),
@@ -88,8 +84,7 @@ public class TestBNLJoinExec {
     }
     appender.flush();
     appender.close();
-    TableDesc employee = TCatUtil.newTableDesc("employee", employeeMeta,
-        sm.getTablePath("people"));
+    employee = TCatUtil.newTableDesc("employee", employeeMeta, employeePath);
     catalog.addTable(employee);
 
     Schema peopleSchema = new Schema();
@@ -97,9 +92,9 @@ public class TestBNLJoinExec {
     peopleSchema.addColumn("fk_memId", DataType.INT);
     peopleSchema.addColumn("name", DataType.STRING);
     peopleSchema.addColumn("age", DataType.INT);
-    TableMeta peopleMeta = TCatUtil.newTableMeta(peopleSchema, StoreType.RAW);
-    sm.initTableBase(peopleMeta, "people");
-    appender = sm.getAppender(peopleMeta, "people", "people");
+    TableMeta peopleMeta = TCatUtil.newTableMeta(peopleSchema, StoreType.CSV);
+    Path peoplePath = new Path(testDir, "people.csv");
+    appender = StorageManager.getAppender(conf, peopleMeta, peoplePath);
     tuple = new VTuple(peopleMeta.getSchema().getColumnNum());
     for (int i = 1; i < INNER_TUPLE_NUM; i += 2) {
       tuple.put(new Datum[] { DatumFactory.createInt(i),
@@ -111,8 +106,7 @@ public class TestBNLJoinExec {
     appender.flush();
     appender.close();
 
-    TableDesc people = TCatUtil.newTableDesc("people", peopleMeta,
-        sm.getTablePath("people"));
+    people = TCatUtil.newTableDesc("people", peopleMeta, peoplePath);
     catalog.addTable(people);
     analyzer = new QueryAnalyzer(catalog);
     planner = new LogicalPlanner(catalog);
@@ -130,12 +124,14 @@ public class TestBNLJoinExec {
 
   @Test
   public final void testCrossJoin() throws IOException {
-    Fragment[] empFrags = sm.split("employee");
-    Fragment[] peopleFrags = sm.split("people");
+    Fragment[] empFrags = sm.splitNG(conf, "employee", employee.getMeta(), employee.getPath(),
+        Integer.MAX_VALUE);
+    Fragment[] peopleFrags = sm.splitNG(conf, "people", people.getMeta(), people.getPath(),
+        Integer.MAX_VALUE);
 
     Fragment[] merged = TUtil.concat(empFrags, peopleFrags);
 
-    File workDir = TajoTestingUtility.getTestDir("CrossJoin");
+    Path workDir = CommonTestingUtil.getTestDir("target/test-data/testCrossJoin");
     TaskAttemptContext ctx = new TaskAttemptContext(conf,
         TUtil.newQueryUnitAttemptId(), merged, workDir);
     PlanningContext context = analyzer.parse(QUERIES[0]);
@@ -165,12 +161,14 @@ public class TestBNLJoinExec {
 
   @Test
   public final void testInnerJoin() throws IOException {
-    Fragment[] empFrags = sm.split("employee");
-    Fragment[] peopleFrags = sm.split("people");
+    Fragment[] empFrags = sm.splitNG(conf, "employee", employee.getMeta(), employee.getPath(),
+        Integer.MAX_VALUE);
+    Fragment[] peopleFrags = sm.splitNG(conf, "people", people.getMeta(), people.getPath(),
+        Integer.MAX_VALUE);
 
     Fragment[] merged = TUtil.concat(empFrags, peopleFrags);
 
-    File workDir = TajoTestingUtility.getTestDir("InnerJoin");
+    Path workDir = CommonTestingUtil.getTestDir("target/test-data/testEvalExpr");
     TaskAttemptContext ctx =
         new TaskAttemptContext(conf, TUtil.newQueryUnitAttemptId(),
             merged, workDir);

@@ -24,6 +24,7 @@
 package tajo.engine.planner.global;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -46,7 +47,6 @@ import tajo.engine.planner.PlanningContext;
 import tajo.engine.planner.logical.*;
 import tajo.master.GlobalPlanner;
 import tajo.master.SubQuery;
-import tajo.master.cluster.QueryManager;
 import tajo.storage.*;
 
 import java.io.IOException;
@@ -54,10 +54,6 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author jihoon
- * 
- */
 public class TestGlobalQueryOptimizer {
   private static TajoTestingCluster util;
   private static TajoConf conf;
@@ -67,7 +63,6 @@ public class TestGlobalQueryOptimizer {
   private static QueryAnalyzer analyzer;
   private static LogicalPlanner logicalPlanner;
   private static QueryId queryId;
-  private static QueryManager qm;
   private static GlobalOptimizer optimizer;
 
   @BeforeClass
@@ -95,7 +90,6 @@ public class TestGlobalQueryOptimizer {
 
     AsyncDispatcher dispatcher = new AsyncDispatcher();
 
-    qm = new QueryManager();
     planner = new GlobalPlanner(conf, catalog, new StorageManager(conf),
         dispatcher.getEventHandler());
     analyzer = new QueryAnalyzer(catalog);
@@ -111,13 +105,16 @@ public class TestGlobalQueryOptimizer {
 
     for (i = 0; i < tbNum; i++) {
       meta = TCatUtil.newTableMeta((Schema)schema.clone(), StoreType.CSV);
-      meta.putOption(CSVFile2.DELIMITER, ",");
+      meta.putOption(CSVFile.DELIMITER, ",");
 
-      if (fs.exists(sm.getTablePath("table"+i))) {
-        fs.delete(sm.getTablePath("table"+i), true);
+      Path dataRoot = sm.getDataRoot();
+      Path tablePath = StorageUtil.concatPath(dataRoot, "table"+i, "file.csv");
+      if (fs.exists(tablePath.getParent())) {
+        fs.delete(tablePath.getParent(), true);
       }
-      appender = sm.getTableAppender(meta, "table" + i);
-      tupleNum = 10000000;
+      fs.mkdirs(tablePath.getParent());
+      appender = StorageManager.getAppender(conf, meta, tablePath);
+      tupleNum = 100;
       for (j = 0; j < tupleNum; j++) {
         appender.addTuple(t);
       }

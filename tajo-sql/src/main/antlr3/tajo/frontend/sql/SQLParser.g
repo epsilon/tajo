@@ -86,7 +86,11 @@ import tajo.frontend.sql.SQLParseError;
    }
 }
 
-// NQL Main
+// SQL Main
+sql
+  : statement EOF
+  ;
+
 statement
   : SESSION CLEAR -> ^(SESSION_CLEAR)
   | dataStatement 
@@ -485,7 +489,7 @@ identifier_chain            : identifier  ( Period identifier  )*;
 
 
 value_expression
-options{k=1;}
+options{k=2;}
   : common_value_expression
   | boolean_value_expression
   | row_value_expression
@@ -581,7 +585,7 @@ value_expression_primary
 
 parenthesized_value_expression
   options{k=1;}
-  :  Left_Paren value_expression  Right_Paren
+  :  Left_Paren! value_expression  Right_Paren!
   ;
 
 /*
@@ -646,6 +650,7 @@ nonparenthesized_value_expression_primary
 
 
 predicate
+  options {k=1;}
   : comparison_predicate
   | in_predicate
   | like_predicate

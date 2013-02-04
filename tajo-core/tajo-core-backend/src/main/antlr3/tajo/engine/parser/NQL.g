@@ -98,13 +98,21 @@ import tajo.engine.query.exception.TQLParseError;
 }
 
 // NQL Main
+sql
+  : statement EOF
+  ;
+
 statement
-  : 'session' 'clear' -> ^(SESSION_CLEAR)
+  : sessionStatement
   | controlStatement
-  | dataStatement 
+  | dataStatement
   | dataChangeStatement
   | schemaStatement
   | indexStatement
+  ;
+
+sessionStatement
+  : 'session' 'clear' -> ^(SESSION_CLEAR)
   ;
   
 controlStatement
@@ -116,6 +124,7 @@ controlStatement
 dataStatement
   : query_expression
   | set_stmt
+  | copyStatement
   ;
   
 dataChangeStatement
@@ -132,9 +141,14 @@ indexStatement
   ;
   
 createTableStatement
-  : CREATE TABLE t=table AS query_expression -> ^(CREATE_TABLE $t query_expression)
-  | t=table ASSIGN query_expression -> ^(CREATE_TABLE $t query_expression)
-  | CREATE TABLE t=table tableElements USING s=ID LOCATION path=STRING p=param_clause? -> ^(CREATE_TABLE $t ^(TABLE_DEF tableElements) $s $path $p?)
+  : CREATE EXTERNAL TABLE t=table def=tableElements USING f=ID p=param_clause? (LOCATION path=STRING)
+      -> ^(CREATE_TABLE $t EXTERNAL ^(TABLE_DEF $def) ^(USING $f) $p? ^(LOCATION $path))
+  | CREATE TABLE t=table (def=tableElements)? (USING s=ID)? (p=param_clause)? (AS q=query_expression)?
+      -> ^(CREATE_TABLE $t ^(TABLE_DEF $def)? ^(USING $s)? $p? ^(AS $q)?)
+  ;
+
+copyStatement
+  : COPY t=table FROM path=string_value_expr FORMAT s=ID (p=param_clause)? -> ^(COPY $t $path $s $p?)
   ;
   
 tableElements
@@ -542,6 +556,7 @@ ASC : 'asc';
 BY : 'by';
 CASE : 'case';
 COUNT : 'count';
+COPY : 'copy';
 CREATE : 'create';
 CROSS : 'cross';
 CUBE : 'cube';
@@ -551,8 +566,10 @@ DROP : 'drop';
 END : 'end';
 ELSE : 'else';
 EXCEPT : 'except';
+EXTERNAL : 'external';
 FALSE : 'false';
 FIRST : 'first';
+FORMAT : 'format';
 FULL : 'full';
 FROM : 'from';
 GROUP : 'group';

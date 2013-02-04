@@ -52,7 +52,6 @@ import tajo.master.GlobalPlanner;
 import tajo.master.SubQuery;
 import tajo.master.SubQuery.PARTITION_TYPE;
 import tajo.master.TajoMaster;
-import tajo.master.cluster.QueryManager;
 import tajo.storage.*;
 
 import java.io.IOException;
@@ -73,7 +72,6 @@ public class TestGlobalQueryPlanner {
   private static QueryAnalyzer analyzer;
   private static LogicalPlanner logicalPlanner;
   private static QueryId queryId;
-  private static QueryManager qm;
   private static StorageManager sm;
 
   @BeforeClass
@@ -108,7 +106,6 @@ public class TestGlobalQueryPlanner {
     dispatcher.init(conf);
     dispatcher.start();
 
-    qm = new QueryManager();
     planner = new GlobalPlanner(conf, catalog, new StorageManager(conf),
         dispatcher.getEventHandler());
     analyzer = new QueryAnalyzer(catalog);
@@ -124,19 +121,22 @@ public class TestGlobalQueryPlanner {
 
     for (i = 0; i < tbNum; i++) {
       meta = TCatUtil.newTableMeta((Schema)schema.clone(), StoreType.CSV);
-      meta.putOption(CSVFile2.DELIMITER, ",");
+      meta.putOption(CSVFile.DELIMITER, ",");
 
-      if (fs.exists(sm.getTablePath("table"+i))) {
-        fs.delete(sm.getTablePath("table"+i), true);
+      Path dataRoot = sm.getDataRoot();
+      Path tablePath = StorageUtil.concatPath(dataRoot, "table"+i, "file.csv");
+      if (fs.exists(tablePath.getParent())) {
+        fs.delete(tablePath.getParent(), true);
       }
-      appender = sm.getTableAppender(meta, "table" + i);
-      tupleNum = 10000000;
+      fs.mkdirs(tablePath.getParent());
+      appender = StorageManager.getAppender(conf, meta, tablePath);
+      tupleNum = 100;
       for (j = 0; j < tupleNum; j++) {
         appender.addTuple(t);
       }
       appender.close();
 
-      TableDesc desc = TCatUtil.newTableDesc("table" + i, (TableMeta)meta.clone(), sm.getTablePath("table"+i));
+      TableDesc desc = TCatUtil.newTableDesc("table" + i, (TableMeta)meta.clone(), tablePath);
       catalog.addTable(desc);
     }
 
@@ -173,7 +173,7 @@ public class TestGlobalQueryPlanner {
   public void testGroupby() throws IOException, KeeperException,
       InterruptedException {
     PlanningContext context = analyzer.parse(
-        "store1 := select age, sumtest(salary) from table0 group by age");
+        "create table store1 as select age, sumtest(salary) from table0 group by age");
     LogicalNode plan = logicalPlanner.createPlan(context);
     plan = LogicalOptimizer.optimize(context, plan);
 
@@ -211,7 +211,7 @@ public class TestGlobalQueryPlanner {
   @Test
   public void testSort() throws IOException {
     PlanningContext context = analyzer.parse(
-        "store1 := select age from table0 order by age");
+        "create table store1 as select age from table0 order by age");
     LogicalNode plan = logicalPlanner.createPlan(context);
     plan = LogicalOptimizer.optimize(context, plan);
 
@@ -481,7 +481,7 @@ public class TestGlobalQueryPlanner {
   public void testCreateMultilevelGroupby()
       throws IOException, CloneNotSupportedException {
     PlanningContext context = analyzer.parse(
-        "store1 := select age, sumtest(salary) from table0 group by age");
+        "create table store1 as select age, sumtest(salary) from table0 group by age");
     LogicalNode plan = logicalPlanner.createPlan(context);
     plan = LogicalOptimizer.optimize(context, plan);
 

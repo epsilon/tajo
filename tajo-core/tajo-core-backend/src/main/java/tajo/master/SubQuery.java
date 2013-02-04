@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.Clock;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -89,6 +90,10 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
   private boolean isLeafQuery = false;
   TaskSchedulerImpl taskScheduler;
   QueryContext queryContext;
+  private Clock clock;
+
+  private long startTime;
+  private long finishTime;
 
   volatile Map<QueryUnitId, QueryUnit> tasks = new ConcurrentHashMap<>();
   volatile Map<ContainerId, Container> containers = new ConcurrentHashMap<>();
@@ -164,6 +169,10 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
 
   public void setQueryContext(QueryContext context) {
     this.queryContext = context;
+  }
+
+  public void setClock(Clock clock) {
+    this.clock = clock;
   }
 
   public void setEventHandler(EventHandler eventHandler) {
@@ -444,6 +453,8 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
       } catch (IOException e) {
       }
     }
+
+    finishTime = clock.getTime();
   }
 
 
@@ -451,6 +462,7 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
 
     @Override
     public SubQueryState transition(SubQuery subQuery, SubQueryEvent subQueryEvent) {
+      subQuery.startTime = subQuery.clock.getTime();
       subQuery.taskScheduler = new TaskSchedulerImpl(subQuery.queryContext);
       subQuery.taskScheduler.init(subQuery.queryContext.getConf());
       subQuery.taskScheduler.start();
@@ -508,8 +520,8 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
           // if there is no tasks
           if (subQuery.tasks.size() == 0) {
             subQuery.cleanUp();
-            TableMeta meta = new TableMetaImpl(subQuery.getOutputSchema(),
-                StoreType.CSV, new Options(), subQuery.getStats());
+            TableMeta meta = toTableMeta(subQuery.getStoreTableNode());
+            meta.setStat(subQuery.getStats());
             subQuery.eventHandler.handle(new SubQuerySucceeEvent(subQuery.getId(),
                 meta));
             return SubQueryState.SUCCEEDED;
@@ -549,7 +561,7 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
                 RecordFactoryProvider.getRecordFactory(null).newRecordInstance(
                     Resource.class);
             if (tasks.length <= subQuery.queryContext.getNumClusterNode()) {
-              resource.setMemory(6000);
+              resource.setMemory(subQuery.queryContext.getMaxContainerCapability());
             } else {
               resource.setMemory(2000);
             }
@@ -718,9 +730,6 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
     public SubQueryState transition(SubQuery subQuery,
                            SubQueryEvent subQueryEvent) {
       try {
-        initOutputDir(subQuery.getStorageManager(), subQuery.getOutputName(),
-            subQuery.getOutputType());
-
         for (QueryUnitId taskId : subQuery.tasks.keySet()) {
           subQuery.eventHandler.handle(new TaskEvent(taskId, TaskEventType.T_SCHEDULE));
         }
@@ -729,27 +738,6 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
       } catch (Exception e) {
         LOG.warn("SubQuery (" + subQuery.getId() + ") failed", e);
         return SubQueryState.FAILED;
-      }
-    }
-
-    private void initOutputDir(StorageManager sm, String outputName,
-                               PARTITION_TYPE type)
-        throws IOException {
-      switch (type) {
-        case HASH:
-          Path tablePath = sm.getTablePath(outputName);
-          sm.getFileSystem().mkdirs(tablePath);
-          LOG.info("Table path " + sm.getTablePath(outputName).toString()
-              + " is initialized for " + outputName);
-          break;
-        case RANGE: // TODO - to be improved
-
-        default:
-          if (!sm.getFileSystem().exists(sm.getTablePath(outputName))) {
-            sm.initTableBase(null, outputName);
-            LOG.info("Table path " + sm.getTablePath(outputName).toString()
-                + " is initialized for " + outputName);
-          }
       }
     }
   }
@@ -789,16 +777,18 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
       }
       subQuery.cleanUp();
       subQuery.taskScheduler.stop();
-      TableMeta meta = new TableMetaImpl(subQuery.getOutputSchema(),
-          StoreType.CSV, new Options(), subQuery.getStats());
+
+      StoreTableNode storeTableNode = subQuery.getStoreTableNode();
+      TableMeta meta = toTableMeta(storeTableNode);
+      meta.setStat(subQuery.getStats());
 
       subQuery.eventHandler.handle(new SubQuerySucceeEvent(subQuery.getId(),
           meta));
+      subQuery.finishTime = subQuery.clock.getTime();
     }
   }
 
   SubQueryState finished(SubQueryState state) {
-    // TODO - record the state to metric
     return state;
   }
 
@@ -832,8 +822,8 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
       if (sm.getFileSystem().exists(new Path(indexPath, ".meta"))) {
         meta = sm.getTableMeta(indexPath);
       } else {
-        meta = TCatUtil
-            .newTableMeta(subQuery.getOutputSchema(), StoreType.CSV);
+        StoreTableNode storeTableNode = subQuery.getStoreTableNode();
+        meta = toTableMeta(storeTableNode);
       }
       String indexName = IndexUtil.getIndexName(index.getTableName(),
           index.getSortSpecs());
@@ -843,10 +833,20 @@ public class SubQuery implements EventHandler<SubQueryEvent> {
       sm.writeTableMeta(indexPath, meta);
 
     } else {
-      TableMeta meta = TCatUtil.newTableMeta(subQuery.getOutputSchema(),
-          StoreType.CSV);
+      StoreTableNode storeTableNode = subQuery.getStoreTableNode();
+      TableMeta meta = toTableMeta(storeTableNode);
       meta.setStat(stat);
       sm.writeTableMeta(sm.getTablePath(subQuery.getOutputName()), meta);
+    }
+  }
+
+  private static TableMeta toTableMeta(StoreTableNode store) {
+    if (store.hasOptions()) {
+      return TCatUtil.newTableMeta(store.getOutSchema(),
+          store.getStorageType(), store.getOptions());
+    } else {
+      return TCatUtil.newTableMeta(store.getOutSchema(),
+          store.getStorageType());
     }
   }
 

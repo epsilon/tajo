@@ -25,8 +25,7 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
-import tajo.TaskAttemptContext2;
-import tajo.WorkerTestingUtil;
+import tajo.TaskAttemptContext;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;
 import tajo.catalog.proto.CatalogProtos.StoreType;
@@ -36,10 +35,8 @@ import tajo.datum.DatumFactory;
 import tajo.engine.parser.QueryAnalyzer;
 import tajo.engine.planner.*;
 import tajo.engine.planner.logical.LogicalNode;
-import tajo.engine.planner2.PhysicalPlanner;
-import tajo.engine.planner2.PhysicalPlannerImpl;
-import tajo.engine.planner2.physical.PhysicalExec;
 import tajo.storage.*;
+import tajo.util.CommonTestingUtil;
 import tajo.util.TUtil;
 
 import java.io.IOException;
@@ -56,6 +53,8 @@ public class TestSortExec {
   private static StorageManager sm;
   private static TajoTestingCluster util;
   private static Path workDir;
+  private static Path tablePath;
+  private static TableMeta employeeMeta;
 
   private static Random rnd = new Random(System.currentTimeMillis());
 
@@ -64,7 +63,7 @@ public class TestSortExec {
     conf = new TajoConf();
     util = new TajoTestingCluster();
     catalog = util.startCatalogCluster().getCatalog();
-    workDir = WorkerTestingUtil.buildTestDir(TEST_PATH);
+    workDir = CommonTestingUtil.getTestDir(TEST_PATH);
     sm = StorageManager.get(conf, workDir);
 
     Schema schema = new Schema();
@@ -72,9 +71,12 @@ public class TestSortExec {
     schema.addColumn("empId", DataType.INT);
     schema.addColumn("deptName", DataType.STRING);
 
-    TableMeta employeeMeta = TCatUtil.newTableMeta(schema, StoreType.CSV);
-    sm.initTableBase(employeeMeta, "employee");
-    Appender appender = sm.getAppender(employeeMeta, "employee", "employee");
+    employeeMeta = TCatUtil.newTableMeta(schema, StoreType.CSV);
+
+    tablePath = StorageUtil.concatPath(workDir, "employee", "table1");
+    sm.getFileSystem().mkdirs(tablePath.getParent());
+
+    Appender appender = StorageManager.getAppender(conf, employeeMeta, tablePath);
     Tuple tuple = new VTuple(employeeMeta.getSchema().getColumnNum());
     for (int i = 0; i < 100; i++) {
       tuple.put(new Datum[] {
@@ -86,8 +88,7 @@ public class TestSortExec {
     appender.flush();
     appender.close();
 
-    TableDesc desc = new TableDescImpl("employee", employeeMeta,
-        sm.getTablePath("employee"));
+    TableDesc desc = new TableDescImpl("employee", employeeMeta, tablePath);
     catalog.addTable(desc);
 
     analyzer = new QueryAnalyzer(catalog);
@@ -104,9 +105,9 @@ public class TestSortExec {
 
   @Test
   public final void testNext() throws IOException {
-    Fragment[] frags = sm.split("employee");
-    Path workDir = WorkerTestingUtil.buildTestDir("target/test-data/TestSortExec");
-    TaskAttemptContext2 ctx = new TaskAttemptContext2(conf, TUtil
+    Fragment [] frags = sm.splitNG(conf, "employee", employeeMeta, tablePath, Integer.MAX_VALUE);
+    Path workDir = CommonTestingUtil.getTestDir("target/test-data/TestSortExec");
+    TaskAttemptContext ctx = new TaskAttemptContext(conf, TUtil
         .newQueryUnitAttemptId(),
         new Fragment[] { frags[0] }, workDir);
     PlanningContext context = analyzer.parse(QUERIES[0]);

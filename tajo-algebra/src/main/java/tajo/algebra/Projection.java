@@ -2,13 +2,13 @@ package tajo.algebra;
 
 import java.util.Arrays;
 
-public class ProjectionOp extends UnaryOp implements Cloneable {
+public class Projection extends UnaryOperator implements Cloneable {
   private boolean all;
 
   private Target [] targets;
 
-  public ProjectionOp() {
-    super(OperatorType.Projection);
+  public Projection() {
+    super(ExprType.Projection);
   }
 
   public void setAll() {
@@ -29,8 +29,8 @@ public class ProjectionOp extends UnaryOp implements Cloneable {
 	
 	@Override
   public boolean equals(Object obj) {
-	  if (obj instanceof ProjectionOp) {
-	    ProjectionOp other = (ProjectionOp) obj;
+	  if (obj instanceof Projection) {
+	    Projection other = (Projection) obj;
 	    
 	    boolean b1 = super.equals(other);
 	    boolean b2 = Arrays.equals(targets, other.targets);

@@ -15,12 +15,35 @@
 package tajo.algebra;
 
 public class BinaryExpr extends Expr {
-  Object left_term;
-  Object right_term;
+  Expr left;
+  Expr right;
 
-  public BinaryExpr(ExpressionType op_type, Object leftTerm, Object rightTerm) {
-    super(op_type);
-    this.left_term = leftTerm;
-    this.right_term = rightTerm;
+  @SuppressWarnings("unused")
+  BinaryExpr() {}
+
+  BinaryExpr(ExprType opType) {
+    super(opType);
+  }
+
+  public BinaryExpr(ExprType type, Expr left, Expr right) {
+    super(type);
+    this.left = left;
+    this.right = right;
+  }
+
+  public Expr getLeft() {
+    return this.left;
+  }
+
+  public void setLeft(Expr left) {
+    this.left = left;
+  }
+
+  public Expr getRight() {
+    return this.left;
+  }
+
+  public void setRight(Expr right) {
+    this.right = right;
   }
 }

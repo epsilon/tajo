@@ -16,42 +16,42 @@ package tajo.algebra;
 
 import org.junit.Test;
 
-import static tajo.algebra.SortOp.SortSpec;
+import static tajo.algebra.Sort.SortSpec;
 
 public class TestSelectionExpr {
 
   @Test
   public void test() {
     Relation rel = new Relation("employee");
-    SelectionOp sel = new SelectionOp(rel);
+    Selection sel = new Selection(rel);
     System.out.println(sel.toString());
   }
 
   @Test
   public void test2() {
     Relation rel = new Relation("employee");
-    SelectionOp sel = new SelectionOp(rel);
+    Selection sel = new Selection(rel);
 
-    SelectionOp sel2 = new SelectionOp(new ReferRelation("refer1", sel));
+    Selection sel2 = new Selection(new ReferRelation("refer1", sel));
     System.out.println(sel2.toString());
   }
 
   @Test
   public void testSort() {
     Relation rel = new Relation("employee");
-    SelectionOp sel = new SelectionOp(rel);
+    Selection sel = new Selection(rel);
 
-    SelectionOp sel2 = new SelectionOp(new ReferRelation("refer1", sel));
+    Selection sel2 = new Selection(new ReferRelation("refer1", sel));
 
     System.out.println(sel2.toJson());
 
-    SortOp sort = new SortOp();
-    SortSpec spec = new SortSpec("employeeId", true, true);
-    sort.setSortSpecs(new SortSpec[] {spec});
-    sort.setSubOp(sel2);
+
+    SortSpec spec = new SortSpec(new ColumnRefExpr("employeeId"), true, true);
+    Sort sort = new Sort(new SortSpec[]{spec});
+    sort.setChild(sel2);
 
     String json = sort.toJson();
     System.out.println(json);
-    //RelationalOp restored = (RelationalOp) JsonHelper.fromJson(json, RelationalOp.class);
+    //Expr restored = (Expr) JsonHelper.fromJson(json, Expr.class);
   }
 }

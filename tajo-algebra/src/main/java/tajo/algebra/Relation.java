@@ -1,16 +1,18 @@
 package tajo.algebra;
 
-public class Relation extends RelationalOp {
-  private String relation;
+import tajo.util.TUtil;
+
+public class Relation extends Expr {
+  private String rel_name;
   private String alias;
 
   public Relation(String relation) {
-    super(OperatorType.Relation);
-    this.relation = relation;
+    super(ExprType.Relation);
+    this.rel_name = relation;
   }
 
   public String getName() {
-    return relation;
+    return rel_name;
   }
 
   public boolean hasAlias() {
@@ -28,5 +30,23 @@ public class Relation extends RelationalOp {
   @Override
   public String toJson() {
     return JsonHelper.toJson(this);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof  Relation) {
+      Relation other = (Relation) obj;
+      return TUtil.checkEquals(rel_name, other.rel_name) &&
+          TUtil.checkEquals(alias, other.alias);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = rel_name.hashCode();
+    result = 31 * result + (alias != null ? alias.hashCode() : 0);
+    return result;
   }
 }

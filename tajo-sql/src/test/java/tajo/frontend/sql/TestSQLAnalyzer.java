@@ -19,7 +19,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.algebra.Expr;
 import tajo.algebra.JsonHelper;
-import tajo.algebra.RelationalOp;
 
 public class TestSQLAnalyzer {
   private static SQLAnalyzer analyzer = null;
@@ -32,10 +31,8 @@ public class TestSQLAnalyzer {
   @Test
   public void testCreateEvalTree() throws Exception {
     SQLAnalyzer analyzer = new SQLAnalyzer();
-    Expr expr = (Expr) analyzer.createExpression(
+    Expr expr = analyzer.createExpression(
         TestSQLParser.parseExpr(TestSQLParser.arithmeticExprs[5]).value_expression().tree);
-
-    System.out.println(expr.toString());
   }
 
   @Test
@@ -45,7 +42,7 @@ public class TestSQLAnalyzer {
     CommonTree tree =
         TestSQLParser.parseExpr(TestSQLParser.comparisonExpr[0]).boolean_value_expression().tree;
     System.out.println(tree.toStringTree());
-    Expr expr = (Expr) analyzer.createExpression(tree);
+    Expr expr = analyzer.createExpression(tree);
 
     System.out.println(expr.toString());
   }
@@ -57,7 +54,7 @@ public class TestSQLAnalyzer {
     CommonTree tree =
         TestSQLParser.parseExpr(TestSQLParser.comparisonExpr[0]).boolean_value_expression().tree;
     System.out.println(tree.toStringTree());
-    Expr expr = (Expr) analyzer.createExpression(tree);
+    Expr expr = analyzer.createExpression(tree);
 
     System.out.println(expr.toString());
   }
@@ -101,7 +98,7 @@ public class TestSQLAnalyzer {
    * people  student
    */
   public final void testNaturalJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[0]);
+    Expr algebra = analyzer.parse(JOINS[0]);
 
     System.out.println(algebra);
 
@@ -121,61 +118,61 @@ public class TestSQLAnalyzer {
    * people student
    */
   public final void testInnerJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[1]);
+    Expr algebra = analyzer.parse(JOINS[1]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testCrossJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[3]);
+    Expr algebra = analyzer.parse(JOINS[3]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testLeftOuterJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[4]);
+    Expr algebra = analyzer.parse(JOINS[4]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testRightOuterJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[5]);
+    Expr algebra = analyzer.parse(JOINS[5]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testLeftJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[7]);
+    Expr algebra = analyzer.parse(JOINS[7]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testRightJoinClause() {
-    RelationalOp algebra = analyzer.parse(JOINS[8]);
+    Expr algebra = analyzer.parse(JOINS[8]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testAllPossibleJoins() {
-    RelationalOp algebra = analyzer.parse(JOINS[9]);
+    Expr algebra = analyzer.parse(JOINS[9]);
     System.out.println(algebra);
   }
 
   @Test
   public final void testTPCHJoin() {
-    RelationalOp algebra = analyzer.parse(JOINS[10]);
+    Expr algebra = analyzer.parse(JOINS[10]);
     System.out.println(algebra);
   }
 
   @Test
   public void testCaseWhen() {
-    RelationalOp tree = analyzer.parse(
+    Expr tree = analyzer.parse(
         "select case when p_type like 'PROMO%' then l_extendedprice * (1 - l_discount) "+
             "when p_type = 'MOCC' then l_extendedprice - 100 else 0 end as cond from lineitem, part");
 
     String json = tree.toJson();
 
-    RelationalOp recover = (RelationalOp) JsonHelper.fromJson(json, RelationalOp.class);
+    Expr recover = (Expr) JsonHelper.fromJson(json, Expr.class);
     System.out.println(recover);
   }
 }

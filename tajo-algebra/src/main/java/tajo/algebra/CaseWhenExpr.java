@@ -20,30 +20,30 @@ import java.util.List;
 
 public class CaseWhenExpr extends Expr {
   private List<WhenExpr> whens = new ArrayList<>();
-  private Object elseResult;
+  private Object else_result;
 
   public CaseWhenExpr() {
-    super(ExpressionType.CaseWhen);
+    super(ExprType.Relation);
   }
 
   public void addWhen(Expr condition, Expr result) {
     whens.add(new WhenExpr(condition, result));
   }
 
-  public void setElseResult(Object elseResult) {
-    this.elseResult = elseResult;
-  }
-
   public Collection<WhenExpr> getWhens() {
     return this.whens;
   }
 
-  public boolean hasElseResult() {
-    return elseResult != null;
+  public void setElseResult(Object else_result) {
+    this.else_result = else_result;
   }
 
   public Object getElseResult() {
-    return this.elseResult;
+    return this.else_result;
+  }
+
+  public boolean hasElseResult() {
+    return else_result != null;
   }
 
   @Override

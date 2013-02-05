@@ -16,14 +16,14 @@ package tajo.algebra;
 
 public class FunctionExpr extends Expr {
   private String signature;
-  private Expr [] arguments;
+  private Expr[] params;
 
   public FunctionExpr(String signature) {
-    super(ExpressionType.Function);
+    super(ExprType.Function);
   }
 
-  public void setArguments(Expr [] arguments) {
-    this.arguments = arguments;
+  public void setParams(Expr[] params) {
+    this.params = params;
   }
 
   public String toJson() {

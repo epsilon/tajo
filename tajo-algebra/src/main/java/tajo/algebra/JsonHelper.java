@@ -34,8 +34,8 @@ public class JsonHelper {
 
   private void initBuilder() {
     builder = new GsonBuilder().setPrettyPrinting();
-    builder.registerTypeAdapter(ExpressionType.class, new ExpressionType.JsonSerDer());
-    builder.registerTypeAdapter(RelationalOp.class, new RelationalOp.JsonSerDer());
+    builder.registerTypeAdapter(ExprType.class, new ExprType.JsonSerDer());
+    builder.registerTypeAdapter(Expr.class, new Expr.JsonSerDer());
   }
 
 
@@ -47,7 +47,7 @@ public class JsonHelper {
     return instance.gson.toJson(obj);
   }
 
-  public static Object fromJson(String json, Class clazz) {
+  public static <T> T fromJson(String json, Class<T> clazz) {
     return instance.gson.fromJson(json, clazz);
   }
 }

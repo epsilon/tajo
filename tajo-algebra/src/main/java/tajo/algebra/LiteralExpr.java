@@ -2,7 +2,7 @@ package tajo.algebra;
 
 public class LiteralExpr extends Expr {
   private String value;
-  private LiteralType type;
+  private LiteralType value_type;
 
   public static enum LiteralType {
     String,
@@ -11,17 +11,17 @@ public class LiteralExpr extends Expr {
     Unsigned_Large_Integer,
   }
 
-  public LiteralExpr(String value, LiteralType type) {
-    super(ExpressionType.Literal);
+  public LiteralExpr(String value, LiteralType value_type) {
+    super(ExprType.Literal);
     this.value = value;
-    this.type = type;
+    this.value_type = value_type;
   }
 
   public String getValue() {
     return this.value;
   }
 
-  public LiteralType getType() {
-    return this.type;
+  public LiteralType getValueType() {
+    return this.value_type;
   }
 }

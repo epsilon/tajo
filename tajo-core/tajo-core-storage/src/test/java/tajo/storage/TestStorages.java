@@ -55,6 +55,10 @@ public class TestStorages {
     this.splitable = splitable;
     this.statsable = statsable;
 
+    init();
+  }
+
+  private void init() throws IOException {
     conf = new TajoConf();
 
     if (storeType == StoreType.RCFILE) {
@@ -126,11 +130,15 @@ public class TestStorages {
 	}
 
   @Test
-  public void testProjection() throws IOException {
+  public void testProjection() throws IOException, InterruptedException {
     Schema schema = new Schema();
-    schema.addColumn("id", DataType.INT);
-    schema.addColumn("age", DataType.LONG);
-    schema.addColumn("score", DataType.FLOAT);
+    schema.addColumn("col0", DataType.LONG);
+    schema.addColumn("col1", DataType.INT);
+    schema.addColumn("col2", DataType.LONG);
+    schema.addColumn("col3", DataType.DOUBLE);
+    schema.addColumn("col4", DataType.FLOAT);
+    schema.addColumn("col5", DataType.DOUBLE);
+    schema.addColumn("col6", DataType.DOUBLE);
 
     TableMeta meta = TCatUtil.newTableMeta(schema, storeType);
 
@@ -140,10 +148,14 @@ public class TestStorages {
     VTuple vTuple;
 
     for(int i = 0; i < tupleNum; i++) {
-      vTuple = new VTuple(3);
-      vTuple.put(0, DatumFactory.createInt(i+1));
-      vTuple.put(1, DatumFactory.createLong(i+2));
-      vTuple.put(2, DatumFactory.createFloat(i + 3));
+      vTuple = new VTuple(7);
+      vTuple.put(0, DatumFactory.createLong(i));
+      vTuple.put(1, DatumFactory.createInt(i+1));
+      vTuple.put(2, DatumFactory.createLong(i + 2));
+      vTuple.put(3, DatumFactory.createDouble(i + 3));
+      vTuple.put(4, DatumFactory.createFloat(i + 4));
+      vTuple.put(5, DatumFactory.createDouble(i + 5));
+      vTuple.put(6, DatumFactory.createDouble(i + 6));
       appender.addTuple(vTuple);
     }
     appender.close();
@@ -152,16 +164,21 @@ public class TestStorages {
     Fragment fragment = new Fragment("testReadAndWrite", tablePath, meta, 0, status.getLen(), null);
 
     Schema target = new Schema();
-    target.addColumn("age", DataType.LONG);
-    target.addColumn("score", DataType.FLOAT);
+    target.addColumn("col1", DataType.INT);
+    target.addColumn("col4", DataType.FLOAT);
+    target.addColumn("col6", DataType.DOUBLE);
     Scanner scanner = StorageManager.getScanner(conf, meta, fragment, target);
     int tupleCnt = 0;
     Tuple tuple;
+    long startTime = System.currentTimeMillis();
     while ((tuple = scanner.next()) != null) {
-      assertEquals(DatumFactory.createLong(tupleCnt + 2), tuple.getLong(1));
-      assertEquals(DatumFactory.createFloat(tupleCnt + 3), tuple.getFloat(2));
+      assertEquals(DatumFactory.createInt(tupleCnt + 1), tuple.getInt(1));
+      assertEquals(DatumFactory.createFloat(tupleCnt + 4), tuple.getFloat(4));
+      assertEquals(DatumFactory.createDouble(tupleCnt + 6), tuple.getDouble(6));
       tupleCnt++;
     }
+    long endTime = System.currentTimeMillis();
+    System.out.println("Scan Time: " + (endTime - startTime));
     scanner.close();
 
     assertEquals(tupleNum, tupleCnt);

@@ -16,23 +16,23 @@ package tajo.algebra;
 
 import tajo.engine.planner.JoinType;
 
-public class JoinOp extends BinaryOp {
+public class Join extends BinaryExpr {
   private JoinType join_type;
   private Expr join_qual;
-  private ColumnRef [] joinColumns;
+  private ColumnRefExpr[] joinColumns;
   private boolean natural = false;
 
-  public JoinOp(JoinType joinType) {
-    super(OperatorType.Join);
+  public Join(JoinType joinType) {
+    super(ExprType.Join);
     this.join_type = joinType;
   }
 
-  public JoinOp(JoinType joinType, Relation right) {
-    this.outer = right;
+  public Join(JoinType joinType, Relation right) {
+    this.left = right;
   }
 
-  public JoinOp(Expr join_qual, RelationalOp outer, RelationalOp inner) {
-    super(OperatorType.Join, outer, inner);
+  public Join(Expr join_qual, Expr outer, Expr inner) {
+    super(ExprType.Join, outer, inner);
     this.join_qual = join_qual;
   }
 
@@ -52,7 +52,7 @@ public class JoinOp extends BinaryOp {
     this.join_qual = expr;
   }
 
-  public void setJoinColumns(ColumnRef [] columns) {
+  public void setJoinColumns(ColumnRefExpr[] columns) {
     joinColumns = columns;
   }
 

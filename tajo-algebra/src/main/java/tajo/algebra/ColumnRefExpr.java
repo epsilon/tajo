@@ -14,36 +14,24 @@
 
 package tajo.algebra;
 
-public abstract class BinaryOp extends RelationalOp {
-  RelationalOp outer;
-  RelationalOp inner;
+public class ColumnRefExpr extends Expr {
+  private String table_name;
+  private String column_name;
 
-  @SuppressWarnings("unused")
-  BinaryOp() {}
-
-  BinaryOp(OperatorType opType) {
-    super(opType);
+  public ColumnRefExpr(String columnName) {
+    super(ExprType.ColumnRef);
+    this.column_name = columnName;
   }
 
-  public BinaryOp(OperatorType type, RelationalOp outer, RelationalOp inner) {
-    super(type);
-    this.outer = outer;
-    this.inner = inner;
+  public void setTableName(String tableName) {
+    this.table_name = tableName;
   }
 
-  public RelationalOp getOuter() {
-    return this.outer;
+  public String getColumnName() {
+    return this.column_name;
   }
 
-  public void setOuter(RelationalOp outer) {
-    this.outer = outer;
-  }
-
-  public RelationalOp getInner() {
-    return this.outer;
-  }
-
-  public void setInner(RelationalOp inner) {
-    this.inner = inner;
+  public String getTableName() {
+    return this.table_name;
   }
 }

@@ -1,14 +1,14 @@
 package tajo.algebra;
 
-public class LikeExpr extends Expr {
+public class LikeExpr extends BinaryExpr {
   private boolean not;
-  private ColumnRef column_ref;
+  private ColumnRefExpr column_ref;
   private Expr pattern;
 
-  public LikeExpr(boolean not, ColumnRef columnRef, Expr pattern) {
-    super(ExpressionType.Like);
+  public LikeExpr(boolean not, ColumnRefExpr columnRefExpr, Expr pattern) {
+    super(ExprType.Like);
     this.not = not;
-    this.column_ref = columnRef;
+    this.column_ref = columnRefExpr;
     this.pattern = pattern;
   }
 
@@ -16,7 +16,7 @@ public class LikeExpr extends Expr {
     return not;
   }
 
-  public ColumnRef getColumnRef() {
+  public ColumnRefExpr getColumnRef() {
     return this.column_ref;
   }
 

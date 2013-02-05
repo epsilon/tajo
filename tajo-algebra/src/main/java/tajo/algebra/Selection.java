@@ -20,12 +20,14 @@
 
 package tajo.algebra;
 
-public class SelectionOp extends UnaryOp implements JsonSerializable {
-	private Relation relation;
-  private Expr qual;
+import tajo.util.TUtil;
 
-  public SelectionOp(Relation relation) {
-    super(OperatorType.Selection);
+public class Selection extends UnaryOperator implements JsonSerializable {
+	private Relation relation;
+  private Expr search_condition;
+
+  public Selection(Relation relation) {
+    super(ExprType.Selection);
     this.relation = relation;
   }
 
@@ -34,31 +36,30 @@ public class SelectionOp extends UnaryOp implements JsonSerializable {
   }
 
   public boolean hasQual() {
-    return qual != null;
+    return search_condition != null;
   }
 
   public void setQual(Expr expr) {
-    this.qual = expr;
+    this.search_condition = expr;
   }
 
 	public Expr getQual() {
-		return this.qual;
+		return this.search_condition;
 	}
-
-  
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof SelectionOp) {
-      SelectionOp other = (SelectionOp) obj;
-      return super.equals(other) 
-          && this.qual.equals(other.qual);
-    } else {
-      return false;
-    }
-  }
 
   @Override
   public String toJson() {
     return JsonHelper.toJson(this);
+  }
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Selection) {
+      Selection other = (Selection) obj;
+      return TUtil.checkEquals(relation, other.relation) &&
+          TUtil.checkEquals(search_condition, other.search_condition);
+    }
+
+    return false;
   }
 }

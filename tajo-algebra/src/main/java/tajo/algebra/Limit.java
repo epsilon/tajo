@@ -15,15 +15,15 @@
 package tajo.algebra;
 
 
-public class LimitOp extends UnaryOp {
-  private long fetchFirstNum;
+public class Limit extends UnaryOperator {
+  private long fetch_first_num;
 
-  public LimitOp(long fetchFirstNum) {
-    this.fetchFirstNum = fetchFirstNum;
+  public Limit(long fetch_first_num) {
+    this.fetch_first_num = fetch_first_num;
   }
 
   public long getLimitRow() {
-    return this.fetchFirstNum;
+    return this.fetch_first_num;
   }
 
   @Override
@@ -37,7 +37,7 @@ public class LimitOp extends UnaryOp {
   }
 
   public boolean equals(Object obj) {
-    return obj instanceof LimitOp &&
-        fetchFirstNum == ((LimitOp)obj).fetchFirstNum;
+    return obj instanceof Limit &&
+        fetch_first_num == ((Limit)obj).fetch_first_num;
   }
 }

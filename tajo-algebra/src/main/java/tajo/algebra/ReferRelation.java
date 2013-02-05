@@ -15,14 +15,14 @@
 package tajo.algebra;
 
 public class ReferRelation extends Relation {
-  private RelationalOp nested;
+  private Expr nested;
 
-  public ReferRelation(String relation, RelationalOp nested) {
+  public ReferRelation(String relation, Expr nested) {
     super(relation);
     this.nested = nested;
   }
 
-  public RelationalOp getReference() {
+  public Expr getReference() {
     return nested;
   }
 }

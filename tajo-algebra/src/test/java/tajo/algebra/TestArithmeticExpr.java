@@ -16,13 +16,18 @@ package tajo.algebra;
 
 import com.google.gson.Gson;
 import org.junit.Test;
+import tajo.algebra.LiteralExpr.LiteralType;
 
 public class TestArithmeticExpr {
 
   @Test
   public void test() {
-    Expr expr1 = new BinaryExpr(ExpressionType.PLUS, "1", "2");
-    Expr expr2 = new BinaryExpr(ExpressionType.MINUS, "1", expr1);
+    Expr expr1 = new BinaryExpr(ExprType.Plus,
+        new LiteralExpr("1", LiteralType.Unsigned_Integer),
+        new LiteralExpr("2", LiteralType.Unsigned_Integer));
+    Expr expr2 = new BinaryExpr(ExprType.Minus,
+        new LiteralExpr("1", LiteralType.Unsigned_Integer),
+        expr1);
 
     String json = expr2.toString();
 

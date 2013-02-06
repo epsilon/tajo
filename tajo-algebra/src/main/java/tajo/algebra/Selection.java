@@ -23,16 +23,11 @@ package tajo.algebra;
 import tajo.util.TUtil;
 
 public class Selection extends UnaryOperator implements JsonSerializable {
-	private Expr relation;
   private Expr search_condition;
 
   public Selection(Expr relation) {
     super(ExprType.Selection);
-    this.relation = relation;
-  }
-
-  public Expr getRelation() {
-    return this.relation;
+    setChild(relation);
   }
 
   public boolean hasQual() {
@@ -56,8 +51,7 @@ public class Selection extends UnaryOperator implements JsonSerializable {
   public boolean equals(Object obj) {
     if (obj instanceof Selection) {
       Selection other = (Selection) obj;
-      return TUtil.checkEquals(relation, other.relation) &&
-          TUtil.checkEquals(search_condition, other.search_condition);
+      return TUtil.checkEquals(search_condition, other.search_condition);
     }
 
     return false;

@@ -17,7 +17,8 @@ package tajo.algebra;
 import java.util.Arrays;
 
 public class Projection extends UnaryOperator implements Cloneable {
-  private boolean all;
+  private boolean project_all;
+  private boolean distinct = false;
 
   private Target [] targets;
 
@@ -25,12 +26,20 @@ public class Projection extends UnaryOperator implements Cloneable {
     super(ExprType.Projection);
   }
 
+  public boolean isDistinct() {
+    return distinct;
+  }
+
+  public void setDistinct() {
+    distinct = true;
+  }
+
   public void setAll() {
-    all = true;
+    project_all = true;
   }
 
   public boolean isAllProjected() {
-    return all;
+    return project_all;
   }
 	
 	public Target [] getTargets() {

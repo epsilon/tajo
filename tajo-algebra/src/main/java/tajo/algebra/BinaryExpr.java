@@ -37,7 +37,7 @@ public class BinaryExpr extends Expr {
   }
 
   public Expr getRight() {
-    return this.left;
+    return this.right;
   }
 
   public void setRight(Expr right) {

@@ -291,7 +291,16 @@ public class SQLAnalyzer {
       current = sort;
     }
 
+    if (block.hasLimit()) {
+      Limit limit = block.getLimit();
+      limit.setChild(current);
+      current = limit;
+    }
+
     Projection projection = block.getProjection();
+    if (block.isDistinct()) {
+      projection.setDistinct();
+    }
     projection.setChild(current);
     current = projection;
 
@@ -468,7 +477,7 @@ public class SQLAnalyzer {
       CommonTree node;
       int numTargets = ast.getChildCount();
       Target [] targets = new Target[numTargets];
-      Object evalTree;
+      Expr evalTree;
       String alias;
 
       // the final one for each target is the alias

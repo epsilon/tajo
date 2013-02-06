@@ -217,7 +217,7 @@ setQualifier
   ;
 
 derivedColumn
-  : boolean_value_expression asClause? -> ^(COLUMN boolean_value_expression asClause?)
+  : value_expression asClause? -> ^(COLUMN value_expression asClause?)
   ;
 
 fieldName

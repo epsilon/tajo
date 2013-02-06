@@ -93,12 +93,24 @@ public class QueryBlock {
     this.sort = sort;
   }
 
+  public boolean hasLimit() {
+    return limit != null;
+  }
+
+  public Limit getLimit() {
+    return this.limit;
+  }
+
   public void setLimit(Limit limit) {
     this.limit = limit;
   }
 
   public Projection getProjection() {
     return this.projection;
+  }
+
+  public boolean isDistinct() {
+    return this.distinct;
   }
 
   public void setDistinct() {

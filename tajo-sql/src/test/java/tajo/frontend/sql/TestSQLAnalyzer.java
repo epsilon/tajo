@@ -68,11 +68,64 @@ public class TestSQLAnalyzer {
       "select p.id, s.id, score, dept from people as p, student as s where p.id = s.id", // 4
       "select name, score from people order by score asc, age desc null first", // 5
       // only expr
-      "select 7 + 8", // 6
+      "select 7 + 8 as total", // 6
       // limit test
       "select id, name, score, age from people limit 3" // 7
-
   };
+
+  @Test
+  public final void testSelectStatement() {
+    Expr expr = analyzer.parse(QUERIES[0]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.Selection, projection.getChild().getType());
+    Selection selection = (Selection) projection.getChild();
+    assertEquals(ExprType.Relation, selection.getChild().getType());
+    Relation relation = (Relation) selection.getChild();
+    assertEquals("people", relation.getName());
+  }
+
+  @Test
+  public final void testSelectStatementWithAlias() {
+    Expr expr = analyzer.parse(QUERIES[4]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.Selection, projection.getChild().getType());
+    Selection selection = (Selection) projection.getChild();
+    assertEquals(ExprType.Join, selection.getChild().getType());
+    Join join = (Join) selection.getChild();
+    assertEquals(ExprType.Relation, join.getLeft().getType());
+    Relation outer = (Relation) join.getLeft();
+    assertEquals("p", outer.getAlias());
+    assertEquals(ExprType.Relation, join.getRight().getType());
+    Relation inner = (Relation) join.getRight();
+    assertEquals("s", inner.getAlias());
+  }
+
+  @Test
+  public final void testOrderByClause() {
+    Expr block = analyzer.parse(QUERIES[5]);
+    testOrderByCluse(block);
+  }
+
+  @Test
+  public final void testOnlyExpr() {
+    Expr expr = analyzer.parse(QUERIES[6]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(1, projection.getTargets().length);
+    Target target = projection.getTargets()[0];
+    assertEquals("total", target.getAlias());
+    assertEquals(ExprType.Plus, target.getExpr().getType());
+  }
+
+  @Test
+  public void testLimit() {
+    Expr expr = analyzer.parse(QUERIES[7]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.Limit, projection.getChild().getType());
+  }
 
 
   static String [] JOINS = {
@@ -207,6 +260,30 @@ public class TestSQLAnalyzer {
   public void testScalarSubQuery() {
     Expr algebra = analyzer.parse(subQueries[1]);
     System.out.println(algebra.toJson());
+  }
+
+  static final String [] setQualifier = {
+      "select id, people_id from student",
+      "select distinct id, people_id from student",
+      "select all id, people_id from student",
+  };
+
+  @Test
+  public final void testSetQulaifier() {
+    Expr expr = analyzer.parse(setQualifier[0]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertFalse(projection.isDistinct());
+
+    expr = analyzer.parse(setQualifier[1]);
+    assertEquals(ExprType.Projection, expr.getType());
+    projection = (Projection) expr;
+    assertTrue(projection.isDistinct());
+
+    expr = analyzer.parse(setQualifier[2]);
+    assertEquals(ExprType.Projection, expr.getType());
+    projection = (Projection) expr;
+    assertFalse(projection.isDistinct());
   }
 
   static final String [] createTableStmts = {

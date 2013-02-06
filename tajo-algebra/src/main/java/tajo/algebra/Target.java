@@ -15,11 +15,15 @@
 package tajo.algebra;
 
 public class Target implements JsonSerializable {
-  private Object expr;
+  private Expr expr;
   private String alias;
 
-  public Target(Object expr) {
+  public Target(Expr expr) {
    this.expr = expr;
+  }
+
+  public Expr getExpr() {
+    return expr;
   }
 
   public boolean hasAlias() {

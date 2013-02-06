@@ -118,17 +118,16 @@ schemaStatement
   ;
   
 indexStatement
-  : CREATE (u=UNIQUE)? INDEX n=Regular_Identifier ON t=table_name (m=method_specifier)?
+  : CREATE (u=UNIQUE)? INDEX n=identifier ON t=table_name (m=method_specifier)?
     Left_Paren s=sort_specifier_list Right_Paren p=param_clause?
     -> ^(CREATE_INDEX $u? $m? $p? $n $t $s)
   ;
 
 createTableStatement
-  : CREATE TABLE t=table_name AS query_expression -> ^(CREATE_TABLE $t query_expression)
-  | t=table_name ASSIGN query_expression -> ^(CREATE_TABLE $t query_expression)
-  | CREATE TABLE t=table_name tableElements USING s=Regular_Identifier LOCATION
-    path=Character_String_Literal p=param_clause?
-    -> ^(CREATE_TABLE $t ^(TABLE_DEF tableElements) $s $path $p?)
+  : CREATE EXTERNAL TABLE t=table_name def=tableElements USING f=identifier p=param_clause? (LOCATION path=Character_String_Literal)
+      -> ^(CREATE_TABLE $t EXTERNAL ^(TABLE_DEF $def) ^(USING $f) $p? ^(LOCATION $path))
+  | CREATE TABLE t=table_name (def=tableElements)? (USING f=identifier)? (p=param_clause)? (AS q=query_expression)?
+      -> ^(CREATE_TABLE $t ^(TABLE_DEF $def)? ^(USING $f)? $p? ^(AS $q)?)
   ;
 
 tableElements
@@ -136,7 +135,7 @@ tableElements
   ;
 
 fieldElement
-  : Regular_Identifier fieldType -> ^(FIELD_DEF Regular_Identifier fieldType)
+  : identifier fieldType -> ^(FIELD_DEF identifier fieldType)
   ;
 
 fieldType
@@ -152,6 +151,7 @@ fieldType
   | BYTES
   | IPv4
   | VARCHAR
+  | STRING
   ;
 
 query_expression
@@ -221,7 +221,7 @@ derivedColumn
   ;
 
 fieldName
-	:	(t=Regular_Identifier Period)? b=Regular_Identifier -> ^(FIELD_NAME $b $t?)
+	:	(t=identifier Period)? b=identifier -> ^(FIELD_NAME $b $t?)
 	;
 
 asClause
@@ -317,8 +317,8 @@ named_columns_join
   ;
 
 table_primary
-  : table_name ((AS)? a=Regular_Identifier)? -> ^(TABLE table_name ($a)?)
-  | t=derived_table (AS)? a=Regular_Identifier -> ^(SUBQUERY $t $a)
+  : table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
+  | t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
   ;
 
 derived_table
@@ -406,11 +406,11 @@ param_clause
   ;
 
 param
-  : k=STRING Equals_Operator v=boolean_value_expression -> ^(PARAM $k $v)
+  : k=Character_String_Literal Equals_Operator v=boolean_value_expression -> ^(PARAM $k $v)
   ;
 
 method_specifier
-  : USING m=Regular_Identifier -> ^(USING[$m.text])
+  : USING m=identifier -> ^(USING[$m.text])
   ;
 
 /*
@@ -651,7 +651,7 @@ parenthesized_boolean_value_expression
 nonparenthesized_value_expression_primary
   : fieldName
   | unsigned_value_specification
-  | scalar_subquery
+  | q=scalar_subquery -> ^(SUBQUERY $q)
   | case_expression
   | funcCall
   | NULL
@@ -809,7 +809,7 @@ table_subquery
 
 subquery
 	options {k=1;}
-	:  Left_Paren query_expression  Right_Paren
+	:  Left_Paren! query_expression Right_Paren!
 	;
 
 /*

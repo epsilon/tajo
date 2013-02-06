@@ -46,11 +46,11 @@ public class Sort extends UnaryOperator {
   }
 
   public static class SortSpec {
-    private ColumnRefExpr key;
+    private ColumnReferenceExpr key;
     private boolean asc = true;
     private boolean null_first = false;
 
-    public SortSpec(final ColumnRefExpr key) {
+    public SortSpec(final ColumnReferenceExpr key) {
       this.key = key;
     }
 
@@ -61,7 +61,7 @@ public class Sort extends UnaryOperator {
      * @param nullFirst
      * Otherwise, it should be false.
      */
-    public SortSpec(final ColumnRefExpr sortKey, final boolean asc,
+    public SortSpec(final ColumnReferenceExpr sortKey, final boolean asc,
                     final boolean nullFirst) {
       this(sortKey);
       this.asc = asc;
@@ -84,7 +84,7 @@ public class Sort extends UnaryOperator {
       this.null_first = true;
     }
 
-    public final ColumnRefExpr getKey() {
+    public final ColumnReferenceExpr getKey() {
       return this.key;
     }
 

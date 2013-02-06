@@ -14,24 +14,21 @@
 
 package tajo.algebra;
 
-public class ColumnRefExpr extends Expr {
-  private String table_name;
-  private String column_name;
+public class TableSubQuery extends Expr {
+  private String rel_name;
+  private Expr subquery;
 
-  public ColumnRefExpr(String columnName) {
-    super(ExprType.ColumnRef);
-    this.column_name = columnName;
+  public TableSubQuery(String relName, Expr subquery) {
+    super(ExprType.SubRelation);
+    this.rel_name = relName;
+    this.subquery = subquery;
   }
 
-  public void setTableName(String tableName) {
-    this.table_name = tableName;
+  public Expr getReference() {
+    return subquery;
   }
 
-  public String getColumnName() {
-    return this.column_name;
-  }
-
-  public String getTableName() {
-    return this.table_name;
+  public String toJson() {
+    return JsonHelper.toJson(this);
   }
 }

@@ -23,15 +23,15 @@ package tajo.algebra;
 import tajo.util.TUtil;
 
 public class Selection extends UnaryOperator implements JsonSerializable {
-	private Relation relation;
+	private Expr relation;
   private Expr search_condition;
 
-  public Selection(Relation relation) {
+  public Selection(Expr relation) {
     super(ExprType.Selection);
     this.relation = relation;
   }
 
-  public Relation getRelation() {
+  public Expr getRelation() {
     return this.relation;
   }
 

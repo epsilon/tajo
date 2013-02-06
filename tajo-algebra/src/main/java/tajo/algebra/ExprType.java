@@ -19,21 +19,28 @@ import com.google.gson.*;
 import java.lang.reflect.Type;
 
 public enum ExprType {
-  Relation(tajo.algebra.Relation.class),
+  // relational operators
+  Relation(Relation.class),
+  SubRelation(TableSubQuery.class),
   Except,
 	Aggregation,
   Intersect,
-  Join(tajo.algebra.Join.class),
-  Projection(tajo.algebra.Projection.class),
+  Join(Join.class),
+  Projection(Projection.class),
   Rename,
-  Selection(tajo.algebra.Selection.class),
-  Sort(tajo.algebra.Sort.class),
+  Selection(Selection.class),
+  Sort(Sort.class),
   Union,
-  Limit(tajo.algebra.Limit.class),
+  Limit(Limit.class),
 
+  // extended relational operators
+  CreateTable(CreateTable.class),
+
+  // logical operators
   And(BinaryExpr.class),
   Or(BinaryExpr.class),
 
+  // comparison operators
   Equals(BinaryExpr.class),
   NotEquals(BinaryExpr.class),
   LessThan(BinaryExpr.class),
@@ -41,13 +48,15 @@ public enum ExprType {
   GreaterThan(BinaryExpr.class),
   GreaterThanOrEquals(BinaryExpr.class),
 
+  // arithmetic operators
   Plus(BinaryExpr.class),
   Minus(BinaryExpr.class),
   Multiply(BinaryExpr.class),
   Divide(BinaryExpr.class),
   Mod(BinaryExpr.class),
 
-  ColumnRef(ColumnRefExpr.class),
+  // other expressions
+  Column(ColumnReferenceExpr.class),
   Function(FunctionExpr.class),
   CaseWhen(CaseWhenExpr.class),
   Like(LikeExpr.class),

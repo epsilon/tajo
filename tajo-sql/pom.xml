@@ -224,6 +224,12 @@
       <groupId>kr.ac.korea.dbserver</groupId>
       <artifactId>tajo-algebra</artifactId>
     </dependency>
+    <dependency>
+      <groupId>kr.ac.korea.dbserver</groupId>
+      <artifactId>tajo-algebra</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.google.protobuf</groupId>

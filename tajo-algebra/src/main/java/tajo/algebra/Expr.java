@@ -5,16 +5,14 @@ import com.google.gson.*;
 import java.lang.reflect.Type;
 
 public abstract class Expr implements JsonSerializable {
-  protected ExprType type;
+  protected ExprType op_type;
 
-  Expr() {}
-
-	public Expr(ExprType type) {
-		this.type = type;
+	public Expr(ExprType op_type) {
+		this.op_type = op_type;
 	}
 	
 	public ExprType getType() {
-		return this.type;
+		return this.op_type;
 	}
 	
 	@Override
@@ -22,7 +20,7 @@ public abstract class Expr implements JsonSerializable {
 	  if (obj instanceof Expr) {
 	    Expr other = (Expr) obj;
 
-      return this.type == other.type;
+      return this.op_type == other.op_type;
 	  } else {
 	    return false;
 	  }
@@ -53,7 +51,7 @@ public abstract class Expr implements JsonSerializable {
     @Override
     public JsonElement serialize(Expr src, Type typeOfSrc,
                                  JsonSerializationContext context) {
-      return context.serialize(src, src.type.getBaseClass());
+      return context.serialize(src, src.op_type.getBaseClass());
     }
   }
 }

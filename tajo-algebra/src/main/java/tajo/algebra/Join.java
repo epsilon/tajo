@@ -19,16 +19,12 @@ import tajo.engine.planner.JoinType;
 public class Join extends BinaryExpr {
   private JoinType join_type;
   private Expr join_qual;
-  private ColumnRefExpr[] joinColumns;
+  private ColumnReferenceExpr [] join_columns;
   private boolean natural = false;
 
   public Join(JoinType joinType) {
     super(ExprType.Join);
     this.join_type = joinType;
-  }
-
-  public Join(JoinType joinType, Relation right) {
-    this.left = right;
   }
 
   public Join(Expr join_qual, Expr outer, Expr inner) {
@@ -52,8 +48,8 @@ public class Join extends BinaryExpr {
     this.join_qual = expr;
   }
 
-  public void setJoinColumns(ColumnRefExpr[] columns) {
-    joinColumns = columns;
+  public void setJoinColumns(ColumnReferenceExpr[] columns) {
+    join_columns = columns;
   }
 
   public boolean hasLeftJoin() {

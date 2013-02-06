@@ -20,10 +20,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Aggregation extends Expr {
+public class Aggregation extends UnaryOperator {
   private List<GroupElement> groups = new ArrayList<>();
 
   public Aggregation() {
+    super(ExprType.Aggregation);
   }
 
   public void addGroupSet(GroupElement group) {
@@ -40,9 +41,9 @@ public class Aggregation extends Expr {
 
   public static class GroupElement implements JsonSerializable {
     private GroupType group_type;
-    private ColumnRefExpr [] columns;
+    private ColumnReferenceExpr[] columns;
 
-    public GroupElement(GroupType groupType, ColumnRefExpr [] columns) {
+    public GroupElement(GroupType groupType, ColumnReferenceExpr[] columns) {
       this.group_type = groupType;
       this.columns = columns;
     }
@@ -51,7 +52,7 @@ public class Aggregation extends Expr {
       return this.group_type;
     }
 
-    public ColumnRefExpr [] getColumns() {
+    public ColumnReferenceExpr[] getColumns() {
       return this.columns;
     }
 

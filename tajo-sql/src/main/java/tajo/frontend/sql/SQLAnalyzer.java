@@ -11,11 +11,14 @@ import tajo.algebra.Aggregation.GroupElement;
 import tajo.algebra.Aggregation.GroupType;
 import tajo.algebra.LiteralExpr.LiteralType;
 import tajo.algebra.Sort.SortSpec;
-import tajo.engine.parser.NQLParser;
 import tajo.engine.planner.JoinType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static tajo.algebra.CreateTable.ColumnDefinition;
 
 public class SQLAnalyzer {
 
@@ -49,11 +52,12 @@ public class SQLAnalyzer {
     return ast;
   }
 
-  private Expr transform(ParsingContext context, QueryBlock block, CommonTree ast) {
+  Expr transform(ParsingContext context, QueryBlock block, CommonTree ast) {
 
     switch (ast.getType()) {
       case SQLParser.SELECT:
         return parseSelectStatement(context, block, ast);
+
       case SQLParser.UNION:
 
       case SQLParser.EXCEPT:
@@ -65,6 +69,7 @@ public class SQLAnalyzer {
       case SQLParser.CREATE_INDEX:
 
       case SQLParser.CREATE_TABLE:
+        return parseCreateStatement(context, ast);
 
       case SQLParser.DROP_TABLE:
 
@@ -73,10 +78,134 @@ public class SQLAnalyzer {
     }
   }
 
+  /**
+   * t=table ASSIGN select_stmt -> ^(CREATE_TABLE $t select_stmt)
+   * | CREATE TABLE t=table AS select_stmt -> ^(CREATE_TABLE $t select_stmt)
+   *
+   * @param ast
+   * @return
+   */
+  private CreateTable parseCreateStatement(final ParsingContext context,
+                                               final CommonTree ast) {
+    CreateTable stmt;
+
+    int idx = 0;
+    CommonTree node;
+    String tableName = ast.getChild(idx).getText();
+    idx++;
+
+    boolean external = false;
+    ColumnDefinition [] tableElements = null;
+    String storeType = null;
+    Map<String, String> params = null;
+    Expr nestedAlgebra = null;
+    String location = null;
+    while(idx < ast.getChildCount()) {
+      node = (CommonTree) ast.getChild(idx);
+      switch (node.getType()) {
+        case SQLParser.EXTERNAL:
+          external = true;
+          break;
+
+        case SQLParser.TABLE_DEF:
+          tableElements = parseTableElementList(node);
+          break;
+
+        case SQLParser.USING:
+          storeType = node.getChild(0).getText();
+          break;
+
+        case SQLParser.PARAMS:
+          params = parseParams(node);
+          break;
+
+        case SQLParser.AS:
+          QueryBlock block = new QueryBlock();
+          nestedAlgebra = parseSelectStatement(context, block, node.getChild(0));
+          break;
+
+        case SQLParser.LOCATION:
+          location = node.getChild(0).getText();
+          break;
+
+        default:
+          throw new SQLSyntaxError(context.rawQuery, "ERROR: not yet supported query");
+      }
+      idx++;
+    }
+
+    if (nestedAlgebra != null) {
+      stmt = new CreateTable(tableName, nestedAlgebra);
+    } else {
+      stmt = new CreateTable(tableName);
+      if (external) {
+        if (location != null) {
+          stmt.setLocation(location);
+        }
+      }
+    }
+
+    if (tableElements != null) {
+      stmt.setTableElements(tableElements);
+    }
+
+    if (storeType != null) {
+      stmt.setStorageType(storeType);
+      if (params != null) {
+        stmt.setParams(params);
+      }
+    }
+
+    // constraints
+    if (external && location == null) {
+      throw new SQLSyntaxError(context.rawQuery,
+          "CREATE EXTERNAL TABLE statement requires LOCATION clause.");
+    }
+    if (!external && location != null) {
+      throw new SQLSyntaxError(context.rawQuery,
+          "LOCATION clause can be only used in CREATE EXTERNAL TABLE statement.");
+    }
+    if (tableElements == null && location != null) {
+      throw new SQLSyntaxError(context.rawQuery,
+          "LOCATION clause requires a schema definition.");
+    }
+
+    return stmt;
+  }
+
+  private ColumnDefinition [] parseTableElementList(final CommonTree ast) {
+    ColumnDefinition [] tableDef = new ColumnDefinition[ast.getChildCount()];
+    for (int i = 0; i < ast.getChildCount(); i++) {
+      tableDef[i] = new ColumnDefinition(ast.getChild(i).getChild(0).getText(),
+          ast.getChild(i).getChild(1).getText());;
+    }
+
+    return tableDef;
+  }
+
+  /**
+   * Should be given Params Node
+   *
+   * EBNF: WITH LEFT_PAREN param (COMMA param)* RIGHT_PAREN
+   * AST: ^(PARAMS param+)
+   *
+   * @param ast
+   * @return
+   */
+  private static Map<String,String> parseParams(final CommonTree ast) {
+    Map<String, String> params = new HashMap<>();
+
+    Tree child;
+    for (int i = 0; i < ast.getChildCount(); i++) {
+      child = ast.getChild(i);
+      params.put(child.getChild(0).getText(), child.getChild(1).getText());
+    }
+    return params;
+  }
+
   private Expr parseSelectStatement(ParsingContext context,
                                             QueryBlock block,
-                                            final CommonTree ast) {
-    Expr relationOp = null;
+                                            final Tree ast) {
     CommonTree node;
     for (int cur = 0; cur < ast.getChildCount(); cur++) {
       node = (CommonTree) ast.getChild(cur);
@@ -84,46 +213,118 @@ public class SQLAnalyzer {
       switch (node.getType()) {
         case SQLParser.FROM:
           Expr fromClause = parseFromClause(context, node);
-          block.setFromClause(fromClause);
+          block.setTableExpression(fromClause);
           break;
 
         case SQLParser.SET_QUALIFIER:
+          if (parseSetQualifier(node)) {
+            block.setDistinct();
+          }
           break;
 
         case SQLParser.SEL_LIST:
-          Projection projection = parseSelectList(node);
+          Projection projection = parseSelectList(context, node);
           block.setProjection(projection);
           break;
 
         case SQLParser.WHERE:
-          block.setSearchCondition(parseWhereClause(node));
+          block.setSearchCondition(parseWhereClause(context, node));
           break;
 
         case SQLParser.GROUP_BY:
           Aggregation aggregation = parseGroupByClause(node);
-          block.setGroupbyClause(aggregation);
+          block.setAggregation(aggregation);
           break;
 
         case SQLParser.HAVING:
+          Expr expr = parseHavingClause(context, node);
+          block.setHavingCondition(expr);
           break;
 
         case SQLParser.ORDER_BY:
           SortSpec [] sortSpecs = parseSortSpecifiers(node.getChild(0));
-          Sort sort = new Sort(sortSpecs);
+          block.setSort(new Sort(sortSpecs));
           break;
 
         case SQLParser.LIMIT:
-
+          block.setLimit(parseLimitClause(context, node));
           break;
 
         default:
-
       }
     }
 
-    System.out.println("block");
+    return transformQueryBlock(context, block);
+  }
 
-    return relationOp;
+  /**
+   * There is an algebraic order of a QueryBlock.
+   * Relation (or Join) -> Selection -> Aggregation -> Sort -> Limit
+   *
+   * @param context
+   * @param block
+   * @return
+   */
+  private Expr transformQueryBlock(ParsingContext context, QueryBlock block) {
+    Expr current;
+
+    // Selection
+    Expr expr = block.getTableExpression();
+    Selection selection = new Selection(expr);
+
+    if (block.hasSearchCondition()) {
+      Expr searchCondition = block.getSearchCondition();
+      selection.setQual(searchCondition);
+    }
+    current = selection;
+
+    // Aggregation
+    if (block.hasAggregation()) {
+      Aggregation aggregation = block.getAggregation();
+      aggregation.setChild(current);
+      current = aggregation;
+    }
+
+    if (block.hasSort()) {
+      Sort sort = block.getSort();
+      sort.setChild(current);
+      current = sort;
+    }
+
+    Projection projection = block.getProjection();
+    projection.setChild(current);
+    current = projection;
+
+    return current;
+  }
+
+  /**
+   * @return true if SELECT DISTINCT. Otherwise, it will be false.
+   */
+  private boolean parseSetQualifier(final CommonTree ast) {
+    int idx = 0;
+
+    if (ast.getChild(idx).getType() == SQLParser.DISTINCT) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private Expr parseHavingClause(final ParsingContext context, final CommonTree ast) {
+    return createExpression(context, ast.getChild(0));
+  }
+
+  private Limit parseLimitClause(final ParsingContext context, final CommonTree ast) {
+    Expr evalNode = createExpression(context, ast.getChild(0));
+
+    if (evalNode instanceof LiteralExpr) {
+      Limit limitClause = new Limit(evalNode);
+      return limitClause;
+    }
+
+    throw new SQLSyntaxError(context.rawQuery, "LIMIT clause cannot have the parameter "
+        + evalNode);
   }
 
   /**
@@ -137,7 +338,7 @@ public class SQLAnalyzer {
     int numSortKeys = ast.getChildCount();
     SortSpec[] sortSpecs = new SortSpec[numSortKeys];
     CommonTree node;
-    ColumnRefExpr column;
+    ColumnReferenceExpr column;
 
     // Each child has the following EBNF and AST:
     // EBNF: fn=fieldName a=order_specification? o=null_ordering?
@@ -153,13 +354,13 @@ public class SQLAnalyzer {
           child = node.getChild(j);
 
           // AST: ^(ORDER ASC) | ^(ORDER DESC)
-          if (child.getType() == NQLParser.ORDER) {
-            if (child.getChild(0).getType() == NQLParser.DESC) {
+          if (child.getType() == SQLParser.ORDER) {
+            if (child.getChild(0).getType() == SQLParser.DESC) {
               sortSpecs[i].setDescending();
             }
-          } else if (child.getType() == NQLParser.NULL_ORDER) {
+          } else if (child.getType() == SQLParser.NULL_ORDER) {
             // AST: ^(NULL_ORDER FIRST) | ^(NULL_ORDER LAST)
-            if (child.getChild(0).getType() == NQLParser.FIRST) {
+            if (child.getChild(0).getType() == SQLParser.FIRST) {
               sortSpecs[i].setNullFirst();
             }
           }
@@ -183,25 +384,25 @@ public class SQLAnalyzer {
     } else {
       // the remain ones are grouping fields.
       Tree group;
-      List<ColumnRefExpr> columnRefs = new ArrayList<>();
-      ColumnRefExpr [] columns;
-      ColumnRefExpr column;
+      List<ColumnReferenceExpr> columnRefs = new ArrayList<>();
+      ColumnReferenceExpr[] columns;
+      ColumnReferenceExpr column;
       for (; idx < ast.getChildCount(); idx++) {
         group = ast.getChild(idx);
         switch (group.getType()) {
-          case NQLParser.CUBE:
+          case SQLParser.CUBE:
             columns = parseColumnReferences((CommonTree) group);
             GroupElement cube = new GroupElement(GroupType.CUBE, columns);
             clause.addGroupSet(cube);
             break;
 
-          case NQLParser.ROLLUP:
+          case SQLParser.ROLLUP:
             columns = parseColumnReferences((CommonTree) group);
             GroupElement rollup = new GroupElement(GroupType.ROLLUP, columns);
             clause.addGroupSet(rollup);
             break;
 
-          case NQLParser.FIELD_NAME:
+          case SQLParser.FIELD_NAME:
             column = checkAndGetColumnByAST(group);
             columnRefs.add(column);
             break;
@@ -209,7 +410,7 @@ public class SQLAnalyzer {
       }
 
       if (columnRefs.size() > 0) {
-        ColumnRefExpr [] groupingFields = columnRefs.toArray(new ColumnRefExpr[columnRefs.size()]);
+        ColumnReferenceExpr[] groupingFields = columnRefs.toArray(new ColumnReferenceExpr[columnRefs.size()]);
         GroupElement g = new GroupElement(GroupType.GROUPBY, groupingFields);
         clause.addGroupSet(g);
       }
@@ -229,8 +430,8 @@ public class SQLAnalyzer {
    * @param parent
    * @return
    */
-  private ColumnRefExpr [] parseColumnReferences(final CommonTree parent) {
-    ColumnRefExpr [] columns = new ColumnRefExpr[parent.getChildCount()];
+  private ColumnReferenceExpr[] parseColumnReferences(final CommonTree parent) {
+    ColumnReferenceExpr[] columns = new ColumnReferenceExpr[parent.getChildCount()];
 
     for (int i = 0; i < columns.length; i++) {
       columns[i] = checkAndGetColumnByAST(parent.getChild(i));
@@ -239,8 +440,8 @@ public class SQLAnalyzer {
     return columns;
   }
 
-  private Expr parseWhereClause(final CommonTree ast) {
-    return createExpression(ast.getChild(0));
+  private Expr parseWhereClause(final ParsingContext context, final CommonTree ast) {
+    return createExpression(context, ast.getChild(0));
   }
 
   /**
@@ -259,7 +460,7 @@ public class SQLAnalyzer {
    *
    * @param ast
    */
-  private Projection parseSelectList(final CommonTree ast) {
+  private Projection parseSelectList(ParsingContext context, final CommonTree ast) {
     Projection projection = new Projection();
     if (ast.getChild(0).getType() == SQLParser.ALL) {
       projection.setAll();
@@ -274,7 +475,7 @@ public class SQLAnalyzer {
       // EBNF: bool_expr AS? fieldName
       for (int i = 0; i < ast.getChildCount(); i++) {
         node = (CommonTree) ast.getChild(i);
-        evalTree = createExpression(node);
+        evalTree = createExpression(context, node);
         targets[i] = new Target(evalTree);
         if (node.getChildCount() > 1) {
           alias = node.getChild(node.getChildCount() - 1).getChild(0).getText();
@@ -291,7 +492,7 @@ public class SQLAnalyzer {
    * EBNF: table_list -> tableRef (COMMA tableRef)
    * @param ast
    */
-  private Expr parseFromClause(ParsingContext ctx, final CommonTree ast) {
+  private Expr parseFromClause(ParsingContext context, final CommonTree ast) {
     Expr previous = null;
     CommonTree node;
     for (int i = 0; i < ast.getChildCount(); i++) {
@@ -313,12 +514,20 @@ public class SQLAnalyzer {
           }
           break;
         case SQLParser.JOIN:
-          Join newJoin = parseExplicitJoinClause(ctx, node);
+          Join newJoin = parseExplicitJoinClause(context, node);
           newJoin.setLeft(previous);
           previous = newJoin;
           break;
+
+        case SQLParser.SUBQUERY:
+          QueryBlock nestedBlock = new QueryBlock();
+          Expr nestedAlgebra = parseSelectStatement(context, nestedBlock, node.getChild(0));
+          String alias = node.getChild(1).getText();
+          previous = new TableSubQuery(alias, nestedAlgebra);
+          break;
+
         default:
-          throw new SQLSyntaxError(ctx.rawQuery, "Wrong From Clause");
+          throw new SQLSyntaxError(context.rawQuery, "Wrong From Clause");
       } // switch
     } // for each derievedTable
 
@@ -371,7 +580,7 @@ public class SQLAnalyzer {
     return join;
   }
 
-  private Join parseQualifiedJoinClause(ParsingContext ctx, final Tree ast, final int idx) {
+  private Join parseQualifiedJoinClause(ParsingContext context, final Tree ast, final int idx) {
     int childIdx = idx;
     Join join = null;
 
@@ -397,7 +606,7 @@ public class SQLAnalyzer {
             join = new Join(JoinType.FULL_OUTER);
             break;
           default:
-            throw new SQLSyntaxError(ctx.rawQuery, "Unknown Join Type");
+            throw new SQLSyntaxError(context.rawQuery, "Unknown Join Type");
         }
       }
 
@@ -411,11 +620,11 @@ public class SQLAnalyzer {
       CommonTree joinQual = (CommonTree) ast.getChild(childIdx);
 
       if (joinQual.getType() == SQLParser.ON) {
-        Expr joinCond = parseJoinCondition(joinQual);
+        Expr joinCond = parseJoinCondition(context, joinQual);
         join.setJoinQual(joinCond);
 
       } else if (joinQual.getType() == SQLParser.USING) {
-        ColumnRefExpr[] joinColumns = parseJoinColumns(joinQual);
+        ColumnReferenceExpr[] joinColumns = parseJoinColumns(joinQual);
         join.setJoinColumns(joinColumns);
       }
     }
@@ -442,8 +651,8 @@ public class SQLAnalyzer {
     return join;
   }
 
-  private ColumnRefExpr[] parseJoinColumns(final CommonTree ast) {
-    ColumnRefExpr[] joinColumns = new ColumnRefExpr[ast.getChildCount()];
+  private ColumnReferenceExpr[] parseJoinColumns(final CommonTree ast) {
+    ColumnReferenceExpr[] joinColumns = new ColumnReferenceExpr[ast.getChildCount()];
 
     for (int i = 0; i < ast.getChildCount(); i++) {
       joinColumns[i] = checkAndGetColumnByAST(ast.getChild(i));
@@ -451,20 +660,20 @@ public class SQLAnalyzer {
     return joinColumns;
   }
 
-  private Expr parseJoinCondition(CommonTree ast) {
-    return createExpression(ast.getChild(0));
+  private Expr parseJoinCondition(ParsingContext context, CommonTree ast) {
+    return createExpression(context, ast.getChild(0));
   }
 
-  private ColumnRefExpr checkAndGetColumnByAST(final Tree fieldNode) {
+  private ColumnReferenceExpr checkAndGetColumnByAST(final Tree fieldNode) {
     Preconditions.checkArgument(SQLParser.FIELD_NAME == fieldNode.getType());
 
     String columnName = fieldNode.getChild(0).getText();
-    ColumnRefExpr column = new ColumnRefExpr(columnName);
+    ColumnReferenceExpr column = new ColumnReferenceExpr(columnName);
 
     String tableName = null;
     if (fieldNode.getChildCount() > 1) {
       tableName = fieldNode.getChild(1).getText();
-      column.setTableName(tableName);
+      column.setRelationName(tableName);
     }
 
     return column;
@@ -492,7 +701,7 @@ public class SQLAnalyzer {
    * @param tree
    * @return
    */
-  public CaseWhenExpr parseCaseWhen(final Tree tree) {
+  public CaseWhenExpr parseCaseWhen(ParsingContext context, final Tree tree) {
     int idx = 0;
 
     CaseWhenExpr caseEval = new CaseWhenExpr();
@@ -504,14 +713,14 @@ public class SQLAnalyzer {
         tree.getChild(idx).getType() == SQLParser.WHEN; idx++) {
 
       when = tree.getChild(idx);
-      cond = createExpression(when.getChild(0));
-      thenResult = createExpression(when.getChild(1));
+      cond = createExpression(context, when.getChild(0));
+      thenResult = createExpression(context, when.getChild(1));
       caseEval.addWhen(cond, thenResult);
     }
 
     if (tree.getChild(idx) != null &&
         tree.getChild(idx).getType() == SQLParser.ELSE) {
-      Object elseResult = createExpression(tree.getChild(idx).getChild(0));
+      Object elseResult = createExpression(context, tree.getChild(idx).getChild(0));
       caseEval.setElseResult(elseResult);
     }
 
@@ -526,7 +735,7 @@ public class SQLAnalyzer {
    * @param tree
    * @return
    */
-  private LikeExpr parseLike(final Tree tree) {
+  private LikeExpr parseLike(ParsingContext context, final Tree tree) {
     int idx = 0;
 
     boolean not = false;
@@ -535,14 +744,14 @@ public class SQLAnalyzer {
       idx++;
     }
 
-    ColumnRefExpr field = (ColumnRefExpr) createExpression(tree.getChild(idx));
+    ColumnReferenceExpr field = (ColumnReferenceExpr) createExpression(context, tree.getChild(idx));
     idx++;
-    Expr pattern = createExpression(tree.getChild(idx));
+    Expr pattern = createExpression(context, tree.getChild(idx));
 
     return new LikeExpr(not, field, pattern);
   }
 
-  public Expr createExpression(final Tree ast) {
+  public Expr createExpression(final ParsingContext context, final Tree ast) {
     switch(ast.getType()) {
 
       // constants
@@ -562,15 +771,13 @@ public class SQLAnalyzer {
 
       // binary expressions
       case SQLParser.LIKE:
-        return parseLike(ast);
+        return parseLike(context, ast);
 
       case SQLParser.IS:
-        ;
+        break;
 
       case SQLParser.AND:
       case SQLParser.OR:
-        break;
-
       case SQLParser.Equals_Operator:
       case SQLParser.Not_Equals_Operator:
       case SQLParser.Less_Than_Operator:
@@ -583,12 +790,12 @@ public class SQLAnalyzer {
       case SQLParser.Slash:
       case SQLParser.Percent:
         return new BinaryExpr(tokenToExprType(ast.getType()),
-            createExpression(ast.getChild(0)),
-            createExpression(ast.getChild(1)));
+            createExpression(context, ast.getChild(0)),
+            createExpression(context, ast.getChild(1)));
 
       // others
       case SQLParser.COLUMN:
-        return createExpression(ast.getChild(0));
+        return createExpression(context, ast.getChild(0));
 
       case SQLParser.FIELD_NAME:
         return checkAndGetColumnByAST(ast);
@@ -599,7 +806,7 @@ public class SQLAnalyzer {
         Expr[] givenArgs = new Expr[ast.getChildCount()];
 
         for (int i = 0; i < ast.getChildCount(); i++) {
-          givenArgs[i] = (Expr) createExpression(ast.getChild(i));
+          givenArgs[i] = createExpression(context, ast.getChild(i));
         }
         func.setParams(givenArgs);
 
@@ -610,7 +817,11 @@ public class SQLAnalyzer {
 
 
       case SQLParser.CASE:
-        return parseCaseWhen(ast);
+        return parseCaseWhen(context, ast);
+
+      case SQLParser.SUBQUERY: // ^(SUBQUERY subquery)
+        QueryBlock block = new QueryBlock();
+        return parseSelectStatement(context, block, ast.getChild(0));
 
       default:
     }
@@ -619,6 +830,8 @@ public class SQLAnalyzer {
 
   public static ExprType tokenToExprType(int tokenId) {
     switch (tokenId) {
+      case SQLParser.AND: return ExprType.And;
+      case SQLParser.OR: return ExprType.Or;
       case SQLParser.Equals_Operator: return ExprType.Equals;
       case SQLParser.Less_Than_Operator: return ExprType.LessThan;
       case SQLParser.Less_Or_Equals_Operator: return ExprType.LessThan;

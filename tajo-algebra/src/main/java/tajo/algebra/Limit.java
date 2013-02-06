@@ -16,13 +16,14 @@ package tajo.algebra;
 
 
 public class Limit extends UnaryOperator {
-  private long fetch_first_num;
+  private Expr fetch_first_num;
 
-  public Limit(long fetch_first_num) {
+  public Limit(Expr fetch_first_num) {
+    super(ExprType.Limit);
     this.fetch_first_num = fetch_first_num;
   }
 
-  public long getLimitRow() {
+  public Expr getLimitRow() {
     return this.fetch_first_num;
   }
 
@@ -38,6 +39,6 @@ public class Limit extends UnaryOperator {
 
   public boolean equals(Object obj) {
     return obj instanceof Limit &&
-        fetch_first_num == ((Limit)obj).fetch_first_num;
+        fetch_first_num.equals(obj);
   }
 }

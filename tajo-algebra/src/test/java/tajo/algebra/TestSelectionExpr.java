@@ -32,7 +32,7 @@ public class TestSelectionExpr {
     Relation rel = new Relation("employee");
     Selection sel = new Selection(rel);
 
-    Selection sel2 = new Selection(new ReferRelation("refer1", sel));
+    Selection sel2 = new Selection(new TableSubQuery("refer1", sel));
     System.out.println(sel2.toString());
   }
 
@@ -41,12 +41,12 @@ public class TestSelectionExpr {
     Relation rel = new Relation("employee");
     Selection sel = new Selection(rel);
 
-    Selection sel2 = new Selection(new ReferRelation("refer1", sel));
+    Selection sel2 = new Selection(new TableSubQuery("refer1", sel));
 
     System.out.println(sel2.toJson());
 
 
-    SortSpec spec = new SortSpec(new ColumnRefExpr("employeeId"), true, true);
+    SortSpec spec = new SortSpec(new ColumnReferenceExpr("employeeId"), true, true);
     Sort sort = new Sort(new SortSpec[]{spec});
     sort.setChild(sel2);
 

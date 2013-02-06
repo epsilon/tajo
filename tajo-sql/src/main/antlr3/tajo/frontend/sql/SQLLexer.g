@@ -257,6 +257,8 @@ END_EXEC                    :   E N D Hyphen E X E C;
 END                         :   E N D;
 ESCAPE                      :   E S C A P E;
 EXCEPT                      :   E X C E P T;
+// non-standard
+EXTERNAL                    :   E X T E R N A L;
 
 FALSE                       :   F A L S E;
 FETCH                       :   F E T C H;
@@ -345,6 +347,8 @@ SQL                         :   S Q L;
 START                       :   S T A R T;
 SYSTEM_USER                 :   S Y S T E M Underscore U S E R;
 SYSTEM                      :   S Y S T E M;
+// non standards
+STRING                      :   S T R I N G;
 
 TABLE                       :   T A B L E;
 THEN                        :   T H E N;

@@ -14,15 +14,24 @@
 
 package tajo.algebra;
 
-public class ReferRelation extends Relation {
-  private Expr nested;
+public class ColumnReferenceExpr extends Expr {
+  private String rel_name;
+  private String column_name;
 
-  public ReferRelation(String relation, Expr nested) {
-    super(relation);
-    this.nested = nested;
+  public ColumnReferenceExpr(String columnName) {
+    super(ExprType.Column);
+    this.column_name = columnName;
   }
 
-  public Expr getReference() {
-    return nested;
+  public void setRelationName(String tableName) {
+    this.rel_name = tableName;
+  }
+
+  public String getColumnName() {
+    return this.column_name;
+  }
+
+  public String getRelationName() {
+    return this.rel_name;
   }
 }

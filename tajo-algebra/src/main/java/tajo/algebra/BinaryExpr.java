@@ -18,9 +18,6 @@ public class BinaryExpr extends Expr {
   Expr left;
   Expr right;
 
-  @SuppressWarnings("unused")
-  BinaryExpr() {}
-
   BinaryExpr(ExprType opType) {
     super(opType);
   }

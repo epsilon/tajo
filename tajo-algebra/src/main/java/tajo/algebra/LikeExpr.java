@@ -14,7 +14,7 @@
 
 package tajo.algebra;
 
-public class LikeExpr extends BinaryExpr {
+public class LikeExpr extends BinaryOperator {
   private boolean not;
   private ColumnReferenceExpr column_ref;
   private Expr pattern;

@@ -22,10 +22,10 @@ public class TestArithmeticExpr {
 
   @Test
   public void test() {
-    Expr expr1 = new BinaryExpr(ExprType.Plus,
+    Expr expr1 = new BinaryOperator(ExprType.Plus,
         new LiteralExpr("1", LiteralType.Unsigned_Integer),
         new LiteralExpr("2", LiteralType.Unsigned_Integer));
-    Expr expr2 = new BinaryExpr(ExprType.Minus,
+    Expr expr2 = new BinaryOperator(ExprType.Minus,
         new LiteralExpr("1", LiteralType.Unsigned_Integer),
         expr1);
 

@@ -17,7 +17,7 @@ package tajo.algebra;
 
 import com.google.common.base.Preconditions;
 
-public class SetOperation extends BinaryExpr {
+public class SetOperation extends BinaryOperator {
   private boolean distinct = true;
 
   public SetOperation(ExprType type, Expr left, Expr right, boolean distinct) {

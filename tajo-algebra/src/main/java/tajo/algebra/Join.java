@@ -14,7 +14,7 @@
 
 package tajo.algebra;
 
-public class Join extends BinaryExpr {
+public class Join extends BinaryOperator {
   private JoinType join_type;
   private Expr join_qual;
   private ColumnReferenceExpr [] join_columns;

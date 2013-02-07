@@ -37,23 +37,23 @@ public enum ExprType {
   CreateTable(CreateTable.class),
 
   // logical operators
-  And(BinaryExpr.class),
-  Or(BinaryExpr.class),
+  And(BinaryOperator.class),
+  Or(BinaryOperator.class),
 
   // comparison operators
-  Equals(BinaryExpr.class),
-  NotEquals(BinaryExpr.class),
-  LessThan(BinaryExpr.class),
-  LessThanOrEquals(BinaryExpr.class),
-  GreaterThan(BinaryExpr.class),
-  GreaterThanOrEquals(BinaryExpr.class),
+  Equals(BinaryOperator.class),
+  NotEquals(BinaryOperator.class),
+  LessThan(BinaryOperator.class),
+  LessThanOrEquals(BinaryOperator.class),
+  GreaterThan(BinaryOperator.class),
+  GreaterThanOrEquals(BinaryOperator.class),
 
   // arithmetic operators
-  Plus(BinaryExpr.class),
-  Minus(BinaryExpr.class),
-  Multiply(BinaryExpr.class),
-  Divide(BinaryExpr.class),
-  Mod(BinaryExpr.class),
+  Plus(BinaryOperator.class),
+  Minus(BinaryOperator.class),
+  Multiply(BinaryOperator.class),
+  Divide(BinaryOperator.class),
+  Mod(BinaryOperator.class),
 
   // other expressions
   Column(ColumnReferenceExpr.class),

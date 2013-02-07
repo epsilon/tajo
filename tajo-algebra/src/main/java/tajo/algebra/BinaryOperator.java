@@ -14,15 +14,15 @@
 
 package tajo.algebra;
 
-public class BinaryExpr extends Expr {
+public class BinaryOperator extends Expr {
   Expr left;
   Expr right;
 
-  BinaryExpr(ExprType opType) {
+  BinaryOperator(ExprType opType) {
     super(opType);
   }
 
-  public BinaryExpr(ExprType type, Expr left, Expr right) {
+  public BinaryOperator(ExprType type, Expr left, Expr right) {
     super(type);
     this.left = left;
     this.right = right;

@@ -14,16 +14,37 @@ public abstract class Expr implements JsonSerializable {
 	public ExprType getType() {
 		return this.op_type;
 	}
+
+  public abstract boolean equalsTo(Expr expr);
 	
 	@Override
 	public boolean equals(Object obj) {
 	  if (obj instanceof Expr) {
-	    Expr other = (Expr) obj;
+	    Expr casted = (Expr) obj;
 
-      return this.op_type == other.op_type;
-	  } else {
-	    return false;
+      if (this.op_type == casted.op_type && equalsTo(casted)) {
+        if (this instanceof UnaryOperator) {
+          UnaryOperator one = (UnaryOperator) this;
+          UnaryOperator another = (UnaryOperator) casted;
+          return one.getChild().equalsTo(another.getChild());
+        } else if (this instanceof BinaryOperator) {
+
+          BinaryOperator bin = (BinaryOperator) this;
+          BinaryOperator anotherBin = (BinaryOperator) casted;
+
+          if (!bin.getLeft().equalsTo(anotherBin.getLeft())) {
+            return false;
+          }
+          if (bin.getRight().equalsTo(anotherBin.getRight())) {
+            return false;
+          }
+
+          return true;
+        }
+      }
 	  }
+
+    return false;
 	}
 
   @Override

@@ -20,10 +20,10 @@ import java.util.List;
 
 public class CaseWhenExpr extends Expr {
   private List<WhenExpr> whens = new ArrayList<>();
-  private Object else_result;
+  private Expr else_result;
 
   public CaseWhenExpr() {
-    super(ExprType.Relation);
+    super(ExprType.CaseWhen);
   }
 
   public void addWhen(Expr condition, Expr result) {
@@ -34,7 +34,7 @@ public class CaseWhenExpr extends Expr {
     return this.whens;
   }
 
-  public void setElseResult(Object else_result) {
+  public void setElseResult(Expr else_result) {
     this.else_result = else_result;
   }
 

@@ -17,9 +17,7 @@
 package tajo.frontend.sql;
 
 
-import tajo.engine.query.exception.InvalidQueryException;
-
-public class SQLSyntaxError extends InvalidQueryException {
+public class SQLSyntaxError extends Exception {
 	private static final long serialVersionUID = 5388279335175632066L;
 
   private String query;

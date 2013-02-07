@@ -11,7 +11,6 @@ import tajo.algebra.Aggregation.GroupElement;
 import tajo.algebra.Aggregation.GroupType;
 import tajo.algebra.LiteralExpr.LiteralType;
 import tajo.algebra.Sort.SortSpec;
-import tajo.engine.planner.JoinType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,11 +21,10 @@ import static tajo.algebra.CreateTable.ColumnDefinition;
 
 public class SQLAnalyzer {
 
-  public Expr parse(String sql) {
+  public Expr parse(String sql) throws SQLSyntaxError {
     ParsingContext context = new ParsingContext(sql);
-    QueryBlock queryBlock = new QueryBlock();
     CommonTree tree = parseSQL(sql);
-    return transform(context, queryBlock, tree);
+    return transform(context, tree);
   }
 
   private static class ParsingContext {
@@ -52,17 +50,15 @@ public class SQLAnalyzer {
     return ast;
   }
 
-  Expr transform(ParsingContext context, QueryBlock block, CommonTree ast) {
-
+  Expr transform(ParsingContext context, CommonTree ast) throws SQLSyntaxError {
     switch (ast.getType()) {
       case SQLParser.SELECT:
-        return parseSelectStatement(context, block, ast);
+        return parseSelectStatement(context, ast);
 
       case SQLParser.UNION:
-
       case SQLParser.EXCEPT:
-
       case SQLParser.INTERSECT:
+        return parseSetStatement(context, ast);
 
       case SQLParser.INSERT:
 
@@ -86,8 +82,8 @@ public class SQLAnalyzer {
    * @return
    */
   private CreateTable parseCreateStatement(final ParsingContext context,
-                                               final CommonTree ast) {
-    CreateTable stmt;
+                                               final CommonTree ast) throws SQLSyntaxError {
+    CreateTable createTable;
 
     int idx = 0;
     CommonTree node;
@@ -120,8 +116,7 @@ public class SQLAnalyzer {
           break;
 
         case SQLParser.AS:
-          QueryBlock block = new QueryBlock();
-          nestedAlgebra = parseSelectStatement(context, block, node.getChild(0));
+          nestedAlgebra = parseSelectStatement(context, node.getChild(0));
           break;
 
         case SQLParser.LOCATION:
@@ -135,24 +130,24 @@ public class SQLAnalyzer {
     }
 
     if (nestedAlgebra != null) {
-      stmt = new CreateTable(tableName, nestedAlgebra);
+      createTable = new CreateTable(tableName, nestedAlgebra);
     } else {
-      stmt = new CreateTable(tableName);
+      createTable = new CreateTable(tableName);
       if (external) {
         if (location != null) {
-          stmt.setLocation(location);
+          createTable.setLocation(location);
         }
       }
     }
 
     if (tableElements != null) {
-      stmt.setTableElements(tableElements);
+      createTable.setTableElements(tableElements);
     }
 
     if (storeType != null) {
-      stmt.setStorageType(storeType);
+      createTable.setStorageType(storeType);
       if (params != null) {
-        stmt.setParams(params);
+        createTable.setParams(params);
       }
     }
 
@@ -170,7 +165,7 @@ public class SQLAnalyzer {
           "LOCATION clause requires a schema definition.");
     }
 
-    return stmt;
+    return createTable;
   }
 
   private ColumnDefinition [] parseTableElementList(final CommonTree ast) {
@@ -203,10 +198,9 @@ public class SQLAnalyzer {
     return params;
   }
 
-  private Expr parseSelectStatement(ParsingContext context,
-                                            QueryBlock block,
-                                            final Tree ast) {
+  private Expr parseSelectStatement(final ParsingContext context, final Tree ast) throws SQLSyntaxError {
     CommonTree node;
+    QueryBlock block = new QueryBlock();
     for (int cur = 0; cur < ast.getChildCount(); cur++) {
       node = (CommonTree) ast.getChild(cur);
 
@@ -265,46 +259,99 @@ public class SQLAnalyzer {
    * @param block
    * @return
    */
-  private Expr transformQueryBlock(ParsingContext context, QueryBlock block) {
-    Expr current;
+  private Expr transformQueryBlock(ParsingContext context, QueryBlock block) throws SQLSyntaxError {
+    Expr current = null;
 
     // Selection
-    Expr expr = block.getTableExpression();
-    Selection selection = new Selection(expr);
+    if (block.hasTableExpression()) {
+      current = block.getTableExpression();
+    }
 
     if (block.hasSearchCondition()) {
+      if (current == null) {
+        throw new SQLSyntaxError(context.rawQuery,
+            "No TableExpression, but there exists search condition");
+      }
+      Selection selection = new Selection(current);
       Expr searchCondition = block.getSearchCondition();
       selection.setQual(searchCondition);
+      current = selection;
     }
-    current = selection;
 
     // Aggregation
+    Aggregation aggregation = null;
     if (block.hasAggregation()) {
-      Aggregation aggregation = block.getAggregation();
+      if (current == null) {
+        throw new SQLSyntaxError(context.rawQuery,
+            "No TableExpression, but there exists a group-by clause");
+      }
+      aggregation = block.getAggregation();
+
+      if (block.hasAggregation()) {
+        aggregation.setHavingCondition(block.getHavingCondition());
+      }
+
       aggregation.setChild(current);
       current = aggregation;
     }
 
     if (block.hasSort()) {
+      if (current == null) {
+        throw new SQLSyntaxError(context.rawQuery,
+            "No TableExpression, but there exists a sort clause");
+      }
       Sort sort = block.getSort();
       sort.setChild(current);
       current = sort;
     }
 
     if (block.hasLimit()) {
+      if (current == null) {
+        throw new SQLSyntaxError(context.rawQuery,
+            "No TableExpression, but there exists a limit clause");
+      }
       Limit limit = block.getLimit();
       limit.setChild(current);
       current = limit;
     }
 
     Projection projection = block.getProjection();
-    if (block.isDistinct()) {
-      projection.setDistinct();
+    if (block.hasAggregation()) {
+      aggregation.setTargets(projection.getTargets());
+    } else {
+      if (block.isDistinct()) {
+        projection.setDistinct();
+      }
+      if (current != null) {
+        projection.setChild(current);
+      }
+      current = projection;
     }
-    projection.setChild(current);
-    current = projection;
 
     return current;
+  }
+
+  private Expr parseSetStatement(final ParsingContext context,
+                                 final CommonTree ast) throws SQLSyntaxError {
+    Expr left;
+    Expr right;
+
+    ExprType type = tokenToExprType(ast.getType());
+
+    int idx = 0;
+    left = transform(context, (CommonTree) ast.getChild(idx));
+    idx++;
+    int nodeType = ast.getChild(idx).getType();
+    boolean distinct = true; // distinct is default in ANSI SQL standards
+    if (nodeType == SQLParser.ALL) {
+      distinct = true;
+      idx++;
+    } else if (nodeType == SQLParser.DISTINCT) {
+      distinct = false;
+      idx++;
+    }
+    right = transform(context, (CommonTree) ast.getChild(idx));
+    return new SetOperation(type, left, right, distinct);
   }
 
   /**
@@ -320,20 +367,22 @@ public class SQLAnalyzer {
     }
   }
 
-  private Expr parseHavingClause(final ParsingContext context, final CommonTree ast) {
+  private Expr parseHavingClause(final ParsingContext context, final CommonTree ast)
+      throws SQLSyntaxError {
     return createExpression(context, ast.getChild(0));
   }
 
-  private Limit parseLimitClause(final ParsingContext context, final CommonTree ast) {
-    Expr evalNode = createExpression(context, ast.getChild(0));
+  private Limit parseLimitClause(final ParsingContext context, final CommonTree ast)
+      throws SQLSyntaxError {
+    Expr expr = createExpression(context, ast.getChild(0));
 
-    if (evalNode instanceof LiteralExpr) {
-      Limit limitClause = new Limit(evalNode);
+    if (expr instanceof LiteralExpr) {
+      Limit limitClause = new Limit(expr);
       return limitClause;
     }
 
     throw new SQLSyntaxError(context.rawQuery, "LIMIT clause cannot have the parameter "
-        + evalNode);
+        + expr);
   }
 
   /**
@@ -449,7 +498,8 @@ public class SQLAnalyzer {
     return columns;
   }
 
-  private Expr parseWhereClause(final ParsingContext context, final CommonTree ast) {
+  private Expr parseWhereClause(final ParsingContext context, final CommonTree ast)
+      throws SQLSyntaxError {
     return createExpression(context, ast.getChild(0));
   }
 
@@ -469,7 +519,8 @@ public class SQLAnalyzer {
    *
    * @param ast
    */
-  private Projection parseSelectList(ParsingContext context, final CommonTree ast) {
+  private Projection parseSelectList(ParsingContext context, final CommonTree ast)
+      throws SQLSyntaxError {
     Projection projection = new Projection();
     if (ast.getChild(0).getType() == SQLParser.ALL) {
       projection.setAll();
@@ -501,7 +552,7 @@ public class SQLAnalyzer {
    * EBNF: table_list -> tableRef (COMMA tableRef)
    * @param ast
    */
-  private Expr parseFromClause(ParsingContext context, final CommonTree ast) {
+  private Expr parseFromClause(ParsingContext context, final CommonTree ast) throws SQLSyntaxError {
     Expr previous = null;
     CommonTree node;
     for (int i = 0; i < ast.getChildCount(); i++) {
@@ -529,8 +580,7 @@ public class SQLAnalyzer {
           break;
 
         case SQLParser.SUBQUERY:
-          QueryBlock nestedBlock = new QueryBlock();
-          Expr nestedAlgebra = parseSelectStatement(context, nestedBlock, node.getChild(0));
+          Expr nestedAlgebra = parseSelectStatement(context, node.getChild(0));
           String alias = node.getChild(1).getText();
           previous = new TableSubQuery(alias, nestedAlgebra);
           break;
@@ -554,7 +604,8 @@ public class SQLAnalyzer {
     return table;
   }
 
-  private Join parseExplicitJoinClause(ParsingContext ctx, final CommonTree ast) {
+  private Join parseExplicitJoinClause(ParsingContext ctx, final CommonTree ast)
+      throws SQLSyntaxError {
 
     int idx = 0;
     int parsedJoinType = ast.getChild(idx).getType();
@@ -583,13 +634,14 @@ public class SQLAnalyzer {
     return joinClause;
   }
 
-  private Join parseNaturalJoinClause(ParsingContext ctx, Tree ast) {
+  private Join parseNaturalJoinClause(ParsingContext ctx, Tree ast) throws SQLSyntaxError {
     Join join = parseQualifiedJoinClause(ctx, ast, 1);
     join.setNatural();
     return join;
   }
 
-  private Join parseQualifiedJoinClause(ParsingContext context, final Tree ast, final int idx) {
+  private Join parseQualifiedJoinClause(ParsingContext context, final Tree ast, final int idx)
+      throws SQLSyntaxError {
     int childIdx = idx;
     Join join = null;
 
@@ -630,7 +682,7 @@ public class SQLAnalyzer {
 
       if (joinQual.getType() == SQLParser.ON) {
         Expr joinCond = parseJoinCondition(context, joinQual);
-        join.setJoinQual(joinCond);
+        join.setQual(joinCond);
 
       } else if (joinQual.getType() == SQLParser.USING) {
         ColumnReferenceExpr[] joinColumns = parseJoinColumns(joinQual);
@@ -669,7 +721,7 @@ public class SQLAnalyzer {
     return joinColumns;
   }
 
-  private Expr parseJoinCondition(ParsingContext context, CommonTree ast) {
+  private Expr parseJoinCondition(ParsingContext context, CommonTree ast) throws SQLSyntaxError {
     return createExpression(context, ast.getChild(0));
   }
 
@@ -710,7 +762,7 @@ public class SQLAnalyzer {
    * @param tree
    * @return
    */
-  public CaseWhenExpr parseCaseWhen(ParsingContext context, final Tree tree) {
+  public CaseWhenExpr parseCaseWhen(ParsingContext context, final Tree tree) throws SQLSyntaxError {
     int idx = 0;
 
     CaseWhenExpr caseEval = new CaseWhenExpr();
@@ -729,7 +781,7 @@ public class SQLAnalyzer {
 
     if (tree.getChild(idx) != null &&
         tree.getChild(idx).getType() == SQLParser.ELSE) {
-      Object elseResult = createExpression(context, tree.getChild(idx).getChild(0));
+      Expr elseResult = createExpression(context, tree.getChild(idx).getChild(0));
       caseEval.setElseResult(elseResult);
     }
 
@@ -744,7 +796,7 @@ public class SQLAnalyzer {
    * @param tree
    * @return
    */
-  private LikeExpr parseLike(ParsingContext context, final Tree tree) {
+  private LikeExpr parseLike(ParsingContext context, final Tree tree) throws SQLSyntaxError {
     int idx = 0;
 
     boolean not = false;
@@ -760,7 +812,7 @@ public class SQLAnalyzer {
     return new LikeExpr(not, field, pattern);
   }
 
-  public Expr createExpression(final ParsingContext context, final Tree ast) {
+  public Expr createExpression(final ParsingContext context, final Tree ast) throws SQLSyntaxError {
     switch(ast.getType()) {
 
       // constants
@@ -829,8 +881,7 @@ public class SQLAnalyzer {
         return parseCaseWhen(context, ast);
 
       case SQLParser.SUBQUERY: // ^(SUBQUERY subquery)
-        QueryBlock block = new QueryBlock();
-        return parseSelectStatement(context, block, ast.getChild(0));
+        return new ScalarSubQuery(parseSelectStatement(context, ast.getChild(0)));
 
       default:
     }
@@ -839,6 +890,10 @@ public class SQLAnalyzer {
 
   public static ExprType tokenToExprType(int tokenId) {
     switch (tokenId) {
+      case SQLParser.UNION: return ExprType.Union;
+      case SQLParser.EXCEPT: return ExprType.Except;
+      case SQLParser.INTERSECT: return ExprType.Intersect;
+
       case SQLParser.AND: return ExprType.And;
       case SQLParser.OR: return ExprType.Or;
       case SQLParser.Equals_Operator: return ExprType.Equals;

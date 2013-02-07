@@ -21,11 +21,34 @@ import java.util.Collections;
 import java.util.List;
 
 public class Aggregation extends UnaryOperator {
+  private Target [] targets;
   private List<GroupElement> groups = new ArrayList<>();
+  private Expr havingCondition;
 
   public Aggregation() {
     super(ExprType.Aggregation);
   }
+
+  public Target [] getTargets() {
+    return this.targets;
+  }
+
+  public void setTargets(Target [] targets) {
+    this.targets = targets;
+  }
+
+  public boolean hasHavingCondition() {
+    return havingCondition != null;
+  }
+
+  public Expr getHavingCondition() {
+    return havingCondition;
+  }
+
+  public void setHavingCondition(Expr expr) {
+    this.havingCondition = expr;
+  }
+
 
   public void addGroupSet(GroupElement group) {
     groups.add(group);

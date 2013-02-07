@@ -14,16 +14,15 @@
 
 package tajo.algebra;
 
-public class TableSubQuery extends Relation {
+public class ScalarSubQuery extends Expr {
   private Expr subquery;
-
-  public TableSubQuery(String relName, Expr subquery) {
-    super(ExprType.TableSubQuery, relName);
-    this.subquery = subquery;
+  public ScalarSubQuery(Expr subQuery) {
+    super(ExprType.ScalarSubQuery);
+    this.subquery = subQuery;
   }
 
   public Expr getSubQuery() {
-    return subquery;
+    return this.subquery;
   }
 
   public String toJson() {

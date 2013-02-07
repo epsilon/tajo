@@ -550,7 +550,8 @@ public class TestQueryAnalyzer {
   
   private final String [] setClauses = {
       "select id, people_id from student union select id, people_id from branch",
-      "select id, people_id from student union select id, people_id from branch intersect select id, people_id from branch as b"
+      "select id, people_id from student union select id, people_id from branch " +
+          "intersect select id, people_id from branch as b"
   };
   
   @Test

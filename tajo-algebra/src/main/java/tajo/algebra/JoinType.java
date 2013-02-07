@@ -14,19 +14,11 @@
 
 package tajo.algebra;
 
-public class TableSubQuery extends Relation {
-  private Expr subquery;
-
-  public TableSubQuery(String relName, Expr subquery) {
-    super(ExprType.TableSubQuery, relName);
-    this.subquery = subquery;
-  }
-
-  public Expr getSubQuery() {
-    return subquery;
-  }
-
-  public String toJson() {
-    return JsonHelper.toJson(this);
-  }
+public enum JoinType {
+  CROSS_JOIN,
+  INNER,
+  LEFT_OUTER,
+  RIGHT_OUTER,
+  FULL_OUTER,
+  UNION
 }

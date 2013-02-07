@@ -14,12 +14,15 @@
 
 package tajo.frontend.sql;
 
-import org.antlr.runtime.tree.CommonTree;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.algebra.*;
 
+import java.util.Iterator;
+import java.util.List;
+
 import static junit.framework.Assert.*;
+import static tajo.algebra.Aggregation.GroupType;
 
 public class TestSQLAnalyzer {
   private static SQLAnalyzer analyzer = null;
@@ -27,37 +30,6 @@ public class TestSQLAnalyzer {
   @BeforeClass
   public static void setup() {
     analyzer = new SQLAnalyzer();
-  }
-
-  @Test
-  public void testCreateEvalTree() throws Exception {
-    SQLAnalyzer analyzer = new SQLAnalyzer();
-//    Expr expr = analyzer.createExpression(
-//        TestSQLParser.parseExpr(TestSQLParser.arithmeticExprs[5]).value_expression().tree);
-  }
-
-  @Test
-  public void testCreateEvalTreeComp() throws Exception {
-    SQLAnalyzer analyzer = new SQLAnalyzer();
-
-    CommonTree tree =
-        TestSQLParser.parseExpr(TestSQLParser.comparisonExpr[0]).boolean_value_expression().tree;
-    System.out.println(tree.toStringTree());
-    //Expr expr = analyzer.createExpression(tree);
-
-    //System.out.println(expr.toString());
-  }
-
-  @Test
-  public void testCreateEvalTreeLogic() throws Exception {
-    SQLAnalyzer analyzer = new SQLAnalyzer();
-
-    CommonTree tree =
-        TestSQLParser.parseExpr(TestSQLParser.comparisonExpr[0]).boolean_value_expression().tree;
-    System.out.println(tree.toStringTree());
-    //Expr expr = analyzer.createExpression(tree);
-
-    //System.out.println(expr.toString());
   }
 
   private String[] QUERIES = {
@@ -74,19 +46,17 @@ public class TestSQLAnalyzer {
   };
 
   @Test
-  public final void testSelectStatement() {
+  public final void testSelectStatement() throws SQLSyntaxError {
     Expr expr = analyzer.parse(QUERIES[0]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
-    assertEquals(ExprType.Selection, projection.getChild().getType());
-    Selection selection = (Selection) projection.getChild();
-    assertEquals(ExprType.Relation, selection.getChild().getType());
-    Relation relation = (Relation) selection.getChild();
+    assertEquals(ExprType.Relation, projection.getChild().getType());
+    Relation relation = (Relation) projection.getChild();
     assertEquals("people", relation.getName());
   }
 
   @Test
-  public final void testSelectStatementWithAlias() {
+  public final void testSelectStatementWithAlias() throws SQLSyntaxError {
     Expr expr = analyzer.parse(QUERIES[4]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
@@ -103,13 +73,13 @@ public class TestSQLAnalyzer {
   }
 
   @Test
-  public final void testOrderByClause() {
+  public final void testOrderByClause() throws SQLSyntaxError {
     Expr block = analyzer.parse(QUERIES[5]);
     testOrderByCluse(block);
   }
 
   @Test
-  public final void testOnlyExpr() {
+  public final void testOnlyExpr() throws SQLSyntaxError {
     Expr expr = analyzer.parse(QUERIES[6]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
@@ -120,11 +90,82 @@ public class TestSQLAnalyzer {
   }
 
   @Test
-  public void testLimit() {
+  public void testLimit() throws SQLSyntaxError {
     Expr expr = analyzer.parse(QUERIES[7]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
     assertEquals(ExprType.Limit, projection.getChild().getType());
+  }
+
+  private String[] GROUP_BY = {
+      "select age, sumtest(score) as total from people group by age having sumtest(score) > 30", // 0
+      "select name, age, sumtest(score) total from people group by cube (name,age)", // 1
+      "select name, age, sumtest(score) total from people group by rollup (name,age)", // 2
+      "select id, name, age, sumtest(score) total from people group by id, cube (name), rollup (age)", // 3
+      "select id, name, age, sumtest(score) total from people group by ()", // 4
+  };
+
+  @Test
+  public final void testGroupByStatement() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(GROUP_BY[0]);
+    assertEquals(ExprType.Aggregation, expr.getType());
+    Aggregation aggregation = (Aggregation) expr;
+
+    assertEquals(1, aggregation.getGroupSet().size());
+    assertEquals("age", aggregation.getGroupSet().get(0).getColumns()[0].getName());
+    assertTrue(aggregation.hasHavingCondition());
+    assertEquals(ExprType.GreaterThan, aggregation.getHavingCondition().getType());
+  }
+
+  @Test
+  public final void testCubeByStatement() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(GROUP_BY[1]);
+    assertEquals(ExprType.Aggregation, expr.getType());
+    Aggregation aggregation = (Aggregation) expr;
+    assertEquals(1, aggregation.getGroupSet().size());
+    assertEquals(GroupType.CUBE, aggregation.getGroupSet().get(0).getType());
+    List<Aggregation.GroupElement> groups = aggregation.getGroupSet();
+    assertEquals("name", groups.get(0).getColumns()[0].getName());
+    assertEquals("age", groups.get(0).getColumns()[1].getName());
+  }
+
+  @Test
+  public final void testRollUpStatement() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(GROUP_BY[2]);
+    assertEquals(ExprType.Aggregation, expr.getType());
+    Aggregation aggregation = (Aggregation) expr;
+
+    assertEquals(1, aggregation.getGroupSet().size());
+    assertEquals(GroupType.ROLLUP, aggregation.getGroupSet().get(0).getType());
+    List<Aggregation.GroupElement> groups = aggregation.getGroupSet();
+    assertEquals("name", groups.get(0).getColumns()[0].getName());
+    assertEquals("age", groups.get(0).getColumns()[1].getName());
+  }
+
+  @Test
+  public final void testMixedGroupByStatement() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(GROUP_BY[3]);
+    assertEquals(ExprType.Aggregation, expr.getType());
+    Aggregation aggregation = (Aggregation) expr;
+    assertEquals(3, aggregation.getGroupSet().size());
+    Iterator<Aggregation.GroupElement> it = aggregation.getGroupSet().iterator();
+    Aggregation.GroupElement group = it.next();
+    assertEquals(GroupType.CUBE, group.getType());
+    assertEquals("name", group.getColumns()[0].getName());
+    group = it.next();
+    assertEquals(GroupType.ROLLUP, group.getType());
+    assertEquals("age", group.getColumns()[0].getName());
+    group = it.next();
+    assertEquals(GroupType.GROUPBY, group.getType());
+    assertEquals("id", group.getColumns()[0].getName());
+  }
+
+  @Test
+  public final void testEmptyGroupSetStatement() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(GROUP_BY[4]);
+    assertEquals(ExprType.Aggregation, expr.getType());
+    Aggregation block = (Aggregation) expr;
+    assertTrue(block.isEmptyGrouping());
   }
 
 
@@ -163,86 +204,207 @@ public class TestSQLAnalyzer {
    *           join
    *          /    \
    *       join    branch
-   *    /       \
+   *     /     \
    * people  student
+   *
    */
-  public final void testNaturalJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[0]);
+  public final void testNaturalJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[0]);
 
-    System.out.println(algebra);
 
-    //JoinOp join = block.getJoinClause();
-//    assertEquals(JoinType.INNER, join.getJoinType());
-//    assertTrue(join.isNatural());
-//    assertEquals("branch", ((Relation)join.getOuter()).getName());
-//    assertTrue(join.hasLeftJoin());
-//    assertEquals("people", join.getLeftJoin().getLeft().getTableName());
-//    assertEquals("student", join.getLeftJoin().getRight().getTableName());
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.INNER, join.getJoinType());
+    assertTrue(join.isNatural());
+    Relation branch = (Relation) join.getRight();
+    assertEquals("branch", branch.getName());
+    assertEquals(ExprType.Join, join.getLeft().getType());
+    Join leftJoin = (Join) join.getLeft();
+    Relation people = (Relation) leftJoin.getLeft();
+    Relation student = (Relation) leftJoin.getRight();
+    assertEquals("people", people.getName());
+    assertEquals("student", student.getName());
+  }
+
+  private Join commonJoinTest(Expr expr) {
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+
+    return (Join) projection.getChild();
   }
 
   @Test
   /**
    *       join
-   *    /       \
-   * people student
+   *     /      \
+   * people   student
+   *
    */
-  public final void testInnerJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[1]);
-    System.out.println(algebra);
+  public final void testInnerJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[1]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.INNER, join.getJoinType());
+    Relation people = (Relation) join.getLeft();
+    assertEquals("people", people.getName());
+    assertEquals("p", people.getAlias());
+
+    Relation student = (Relation) join.getRight();
+    assertEquals("student", student.getName());
+    assertEquals("s", student.getAlias());
+    assertTrue(join.hasQual());
+    assertEquals(ExprType.Equals, join.getQual().getType());
+
+    Expr expr2 = analyzer.parse(JOINS[2]);
+    join = commonJoinTest(expr2);
+    assertEquals(JoinType.INNER, join.getJoinType());
+    Relation people2 = (Relation) join.getLeft();
+    assertEquals("people", people2.getName());
+    assertEquals("p", people2.getAlias());
+    Relation student2 = (Relation) join.getRight();
+    assertEquals("student", student2.getName());
+    assertEquals("s", student2.getAlias());
+    assertTrue(join.hasJoinColumns());
+    assertEquals("id", join.getJoinColumns()[0].getName());
   }
 
   @Test
-  public final void testCrossJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[3]);
-    System.out.println(algebra);
+  public final void testCrossJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[3]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.CROSS_JOIN, join.getJoinType());
+    Relation branch = (Relation) join.getRight();
+    assertEquals("branch", branch.getName());
+    assertEquals(ExprType.Join, join.getLeft().getType());
+    Join leftJoin = (Join) join.getLeft();
+    Relation people = (Relation) leftJoin.getLeft();
+    Relation student = (Relation) leftJoin.getRight();
+    assertEquals("people", people.getName());
+    assertEquals("student", student.getName());
   }
 
   @Test
-  public final void testLeftOuterJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[4]);
-    System.out.println(algebra);
+  public final void testLeftOuterJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[4]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.LEFT_OUTER, join.getJoinType());
+    Relation people = (Relation) join.getLeft();
+    assertEquals("people", people.getName());
+    assertEquals("p", people.getAlias());
+    Relation student = (Relation) join.getRight();
+    assertEquals("student", student.getName());
+    assertEquals("s", student.getAlias());
+    assertTrue(join.hasQual());
+    assertEquals(ExprType.Equals, join.getQual().getType());
   }
 
   @Test
-  public final void testRightOuterJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[5]);
-    System.out.println(algebra);
+  public final void testRightOuterJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[5]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.RIGHT_OUTER, join.getJoinType());
+    Relation people = (Relation) join.getLeft();
+    assertEquals("people", people.getName());
+    assertEquals("p", people.getAlias());
+    Relation student = (Relation) join.getRight();
+    assertEquals("student", student.getName());
+    assertEquals("s", student.getAlias());
+    assertTrue(join.hasQual());
+    assertEquals(ExprType.Equals, join.getQual().getType());
   }
 
   @Test
-  public final void testLeftJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[7]);
-    System.out.println(algebra);
+  public final void testLeftJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[7]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.LEFT_OUTER, join.getJoinType());
+    Relation people = (Relation) join.getLeft();
+    assertEquals("people", people.getName());
+    assertEquals("p", people.getAlias());
+    Relation student = (Relation) join.getRight();
+    assertEquals("student", student.getName());
+    assertEquals("s", student.getAlias());
+    assertTrue(join.hasQual());
+    assertEquals(ExprType.Equals, join.getQual().getType());
   }
 
   @Test
-  public final void testRightJoinClause() {
-    Expr algebra = analyzer.parse(JOINS[8]);
-    System.out.println(algebra);
+  public final void testRightJoinClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[8]);
+
+    Join join = commonJoinTest(expr);
+    assertEquals(JoinType.RIGHT_OUTER, join.getJoinType());
+    Relation people = (Relation) join.getLeft();
+    assertEquals("people", people.getName());
+    assertEquals("p", people.getAlias());
+    Relation student = (Relation) join.getRight();
+    assertEquals("student", student.getName());
+    assertEquals("s", student.getAlias());
+    assertTrue(join.hasQual());
+    assertEquals(ExprType.Equals, join.getQual().getType());
+  }
+
+  private final String [] setClauses = {
+      "select id, people_id from student union select id, people_id from branch",
+      "select id, people_id from student union select id, people_id from branch " +
+          "intersect select id, people_id from branch as b"
+  };
+
+  @Test
+  public final void testUnionClause() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(setClauses[0]);
+    assertEquals(ExprType.Union, expr.getType());
+    SetOperation union = (SetOperation) expr;
+    Expr left = union.getLeft();
+    Expr right = union.getRight();
+
+    assertEquals(ExprType.Projection, left.getType());
+    Projection leftProj = (Projection) left;
+    Relation student = (Relation) leftProj.getChild();
+
+    assertEquals(ExprType.Projection, right.getType());
+    Projection rightProj = (Projection) right;
+    Relation branch = (Relation) rightProj.getChild();
+
+    assertEquals("student", student.getName());
+    assertEquals("branch", branch.getName());
+
+    // multiple set statements
+    expr = analyzer.parse(setClauses[1]);
+    assertEquals(ExprType.Union, expr.getType());
+    union = (SetOperation) expr;
+
+    assertEquals(ExprType.Projection, union.getLeft().getType());
+    assertEquals(ExprType.Intersect, union.getRight().getType());
+    leftProj = (Projection) union.getLeft();
+    student = (Relation) leftProj.getChild();
+    assertEquals("student", student.getName());
+
+    SetOperation intersect = (SetOperation) union.getRight();
+    Relation branch2 = (Relation) ((Projection)intersect.getLeft()).getChild();
+    Relation branch3 = (Relation) ((Projection)intersect.getRight()).getChild();
+    assertEquals("branch", branch2.getName());
+    assertFalse(branch2.hasAlias());
+    assertEquals("branch", branch3.getName());
+    assertEquals("b", branch3.getAlias());
   }
 
   @Test
-  public final void testAllPossibleJoins() {
-    Expr algebra = analyzer.parse(JOINS[9]);
-    System.out.println(algebra);
-  }
-
-  @Test
-  public final void testTPCHJoin() {
-    Expr algebra = analyzer.parse(JOINS[10]);
-    System.out.println(algebra);
-  }
-
-  @Test
-  public void testCaseWhen() {
+  public void testCaseWhen() throws SQLSyntaxError {
     Expr tree = analyzer.parse(
         "select case when p_type like 'PROMO%' then l_extendedprice * (1 - l_discount) " +
-            "when p_type = 'MOCC' then l_extendedprice - 100 else 0 end as cond from lineitem, part");
+          "when p_type = 'MOCC' then l_extendedprice - 100 else 0 end as cond from lineitem, part");
 
-    String json = tree.toJson();
-
-    Expr recover = JsonHelper.fromJson(json, Expr.class);
-    System.out.println(recover);
+    assertEquals(ExprType.Projection, tree.getType());
+    Projection projection = (Projection) tree;
+    assertTrue(projection.getTargets()[0].hasAlias());
+    assertEquals(ExprType.CaseWhen, projection.getTargets()[0].getExpr().getType());
+    assertEquals("cond", projection.getTargets()[0].getAlias());
+    CaseWhenExpr caseWhen = (CaseWhenExpr) projection.getTargets()[0].getExpr();
+    assertEquals(2, caseWhen.getWhens().size());
   }
 
   public static String [] subQueries = {
@@ -251,15 +413,19 @@ public class TestSQLAnalyzer {
   };
 
   @Test
-  public void testTableSubQuery() {
-    Expr algebra = analyzer.parse(subQueries[0]);
-    System.out.println(algebra.toJson());
+  public void testTableSubQuery() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(subQueries[0]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.TableSubQuery, projection.getChild().getType());
   }
 
   @Test
-  public void testScalarSubQuery() {
-    Expr algebra = analyzer.parse(subQueries[1]);
-    System.out.println(algebra.toJson());
+  public void testScalarSubQuery() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(subQueries[1]);
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.Selection, projection.getChild().getType());
   }
 
   static final String [] setQualifier = {
@@ -269,7 +435,7 @@ public class TestSQLAnalyzer {
   };
 
   @Test
-  public final void testSetQulaifier() {
+  public final void testSetQulaifier() throws SQLSyntaxError {
     Expr expr = analyzer.parse(setQualifier[0]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
@@ -303,7 +469,7 @@ public class TestSQLAnalyzer {
   };
 
   @Test
-  public final void testCreateTable1() {
+  public final void testCreateTable1() throws SQLSyntaxError {
     CreateTable stmt = (CreateTable) analyzer.parse(createTableStmts[0]);
     assertEquals("table1", stmt.getRelationName());
     assertTrue(stmt.hasTableElements());
@@ -324,7 +490,7 @@ public class TestSQLAnalyzer {
   }
 
   @Test
-  public final void testCreateTableAsSelect() {
+  public final void testCreateTableAsSelect() throws SQLSyntaxError {
     CreateTable stmt = (CreateTable) analyzer.parse(createTableStmts[3]);
     assertEquals("store1", stmt.getRelationName());
     assertTrue(stmt.hasSubQuery());
@@ -349,17 +515,17 @@ public class TestSQLAnalyzer {
 
     assertEquals(2, sort.getSortSpecs().length);
     Sort.SortSpec spec1 = sort.getSortSpecs()[0];
-    assertEquals("score", spec1.getKey().getColumnName());
+    assertEquals("score", spec1.getKey().getName());
     assertEquals(true, spec1.isAscending());
     assertEquals(false, spec1.isNullFirst());
     Sort.SortSpec spec2 = sort.getSortSpecs()[1];
-    assertEquals("age", spec2.getKey().getColumnName());
+    assertEquals("age", spec2.getKey().getName());
     assertEquals(false, spec2.isAscending());
     assertEquals(true, spec2.isNullFirst());
   }
 
   @Test
-  public final void testCreateTableDef1() {
+  public final void testCreateTableDef1() throws SQLSyntaxError {
     CreateTable stmt = (CreateTable) analyzer.parse(createTableStmts[6]);
     assertEquals("table1", stmt.getRelationName());
     CreateTable.ColumnDefinition[] elements = stmt.getTableElements();
@@ -378,7 +544,7 @@ public class TestSQLAnalyzer {
   }
 
   @Test
-  public final void testCreateTableDef2() {
+  public final void testCreateTableDef2() throws SQLSyntaxError {
     CreateTable expr = (CreateTable) analyzer.parse(createTableStmts[7]);
     _testCreateTableDef2(expr);
     CreateTable restored = (CreateTable) AlgebraTestingUtil.testJsonSerializer(expr);

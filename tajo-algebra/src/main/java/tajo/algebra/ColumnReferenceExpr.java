@@ -27,7 +27,7 @@ public class ColumnReferenceExpr extends Expr {
     this.rel_name = tableName;
   }
 
-  public String getColumnName() {
+  public String getName() {
     return this.column_name;
   }
 

@@ -6,9 +6,13 @@ public class Relation extends Expr {
   private String rel_name;
   private String alias;
 
-  public Relation(String relation) {
-    super(ExprType.Relation);
-    this.rel_name = relation;
+  protected Relation(ExprType type, String relationName) {
+    super(type);
+    this.rel_name = relationName;
+  }
+
+  public Relation(String relationName) {
+    this(ExprType.Relation, relationName);
   }
 
   public String getName() {

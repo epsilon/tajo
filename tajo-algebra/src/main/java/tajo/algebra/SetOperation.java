@@ -14,19 +14,24 @@
 
 package tajo.algebra;
 
-public class TableSubQuery extends Relation {
-  private Expr subquery;
 
-  public TableSubQuery(String relName, Expr subquery) {
-    super(ExprType.TableSubQuery, relName);
-    this.subquery = subquery;
+import com.google.common.base.Preconditions;
+
+public class SetOperation extends BinaryExpr {
+  private boolean distinct = true;
+
+  public SetOperation(ExprType type, Expr left, Expr right, boolean distinct) {
+    super(type, left, right);
+    Preconditions.checkArgument(type == ExprType.Union ||
+        type == ExprType.Intersect ||
+        type == ExprType.Except);
   }
 
-  public Expr getSubQuery() {
-    return subquery;
+  public boolean isDistinct() {
+    return distinct;
   }
 
-  public String toJson() {
-    return JsonHelper.toJson(this);
+  public void unsetDistinct() {
+    distinct = false;
   }
 }

@@ -23,8 +23,6 @@ public class QueryBlock {
   private Projection projection;
   /* distinct or all? */
   private boolean distinct = false;
-  /* select target list */
-  private Target[] targetList = null;
   /* from clause or join clause */
   private Expr tableExpression = null;
   /* where clause */
@@ -45,12 +43,16 @@ public class QueryBlock {
     this.projection = projection;
   }
 
-  public void setTableExpression(Expr fromClause) {
-    this.tableExpression = fromClause;
+  public boolean hasTableExpression() {
+    return this.tableExpression != null;
   }
 
   public Expr getTableExpression() {
     return this.tableExpression;
+  }
+
+  public void setTableExpression(Expr fromClause) {
+    this.tableExpression = fromClause;
   }
 
   public boolean hasSearchCondition() {
@@ -77,8 +79,16 @@ public class QueryBlock {
     this.aggregation = groupby;
   }
 
+  public boolean hasHavingCondition(Expr expr) {
+    return havingCondition != null;
+  }
+
+  public Expr getHavingCondition() {
+    return havingCondition;
+  }
+
   public void setHavingCondition(Expr expr) {
-    this.havingCondition = expr;
+    havingCondition = expr;
   }
 
   public boolean hasSort() {

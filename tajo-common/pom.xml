@@ -204,7 +204,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <executions>
               <execution>
                 <!-- builds source jars and attaches them to the project for publishing -->
-                <id>hadoop-java-sources</id>
+                <id>tajo-java-sources</id>
                 <phase>package</phase>
                 <goals>
                   <goal>jar-no-fork</goal>

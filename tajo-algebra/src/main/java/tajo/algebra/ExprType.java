@@ -21,7 +21,7 @@ import java.lang.reflect.Type;
 public enum ExprType {
   // relational operators
   Relation(Relation.class),
-  SubRelation(TableSubQuery.class),
+  TableSubQuery(TableSubQuery.class),
   Except,
 	Aggregation,
   Intersect,
@@ -60,7 +60,8 @@ public enum ExprType {
   Function(FunctionExpr.class),
   CaseWhen(CaseWhenExpr.class),
   Like(LikeExpr.class),
-  Literal(LiteralExpr.class);
+  Literal(LiteralExpr.class),
+  ScalarSubQuery(ScalarSubQuery.class);
 
   private Class baseClass;
 

@@ -22,15 +22,15 @@ public enum ExprType {
   // relational operators
   Relation(Relation.class),
   TableSubQuery(TableSubQuery.class),
-  Except,
-	Aggregation,
-  Intersect,
+  Except(SetOperation.class),
+	Aggregation(tajo.algebra.Aggregation.class),
+  Intersect(SetOperation.class),
   Join(Join.class),
   Projection(Projection.class),
   Rename,
   Selection(Selection.class),
   Sort(Sort.class),
-  Union,
+  Union(SetOperation.class),
   Limit(Limit.class),
 
   // extended relational operators

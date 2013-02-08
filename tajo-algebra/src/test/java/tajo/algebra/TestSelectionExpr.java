@@ -14,44 +14,7 @@
 
 package tajo.algebra;
 
-import org.junit.Test;
-
-import static tajo.algebra.Sort.SortSpec;
-
 public class TestSelectionExpr {
 
-  @Test
-  public void test() {
-    Relation rel = new Relation("employee");
-    Selection sel = new Selection(rel);
-    System.out.println(sel.toString());
-  }
 
-  @Test
-  public void test2() {
-    Relation rel = new Relation("employee");
-    Selection sel = new Selection(rel);
-
-    Selection sel2 = new Selection(new TableSubQuery("refer1", sel));
-    System.out.println(sel2.toString());
-  }
-
-  @Test
-  public void testSort() {
-    Relation rel = new Relation("employee");
-    Selection sel = new Selection(rel);
-
-    Selection sel2 = new Selection(new TableSubQuery("refer1", sel));
-
-    System.out.println(sel2.toJson());
-
-
-    SortSpec spec = new SortSpec(new ColumnReferenceExpr("employeeId"), true, true);
-    Sort sort = new Sort(new SortSpec[]{spec});
-    sort.setChild(sel2);
-
-    String json = sort.toJson();
-    System.out.println(json);
-    //Expr restored = (Expr) JsonHelper.fromJson(json, Expr.class);
-  }
 }

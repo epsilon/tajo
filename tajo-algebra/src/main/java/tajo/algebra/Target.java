@@ -14,6 +14,8 @@
 
 package tajo.algebra;
 
+import tajo.util.TUtil;
+
 public class Target implements JsonSerializable {
   private Expr expr;
   private String alias;
@@ -41,5 +43,15 @@ public class Target implements JsonSerializable {
   @Override
   public String toJson() {
     return JsonHelper.toJson(this);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Target) {
+      Target another = (Target) obj;
+      return expr.equals(another.expr) && TUtil.checkEquals(alias, another.alias);
+    }
+
+    return false;
   }
 }

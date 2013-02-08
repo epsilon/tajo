@@ -62,6 +62,29 @@ public class TUtil {
       return Arrays.equals(s1, s2);
     }
   }
+
+  /**
+   * check two maps as equals.
+   * It will return true even if they are all null.
+   *
+   * @param m1
+   * @param m2
+   * @return true if they are equal or all null
+   */
+  public static boolean checkEquals(Map m1, Map m2) {
+    if (m1 == null ^ m2 == null) {
+      return false;
+    } else if (m1 == null && m2 == null) {
+      return true;
+    } else {
+      if (m1.size() != m2.size())
+        return false;
+      for (Object key: m1.keySet())
+        if (!m1.get(key).equals(m2.get(key)))
+          return false;
+      return true;
+    }
+  }
   
   public static <T> T[] concat(T[] first, T[] second) {
     T[] result = Arrays.copyOf(first, first.length + second.length);

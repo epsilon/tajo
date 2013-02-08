@@ -14,6 +14,8 @@
 
 package tajo.algebra;
 
+import tajo.util.TUtil;
+
 public class FunctionExpr extends Expr {
   private String signature;
   private Expr[] params;
@@ -24,6 +26,13 @@ public class FunctionExpr extends Expr {
 
   public void setParams(Expr[] params) {
     this.params = params;
+  }
+
+  @Override
+  boolean equalsTo(Expr expr) {
+    FunctionExpr another = (FunctionExpr) expr;
+    return signature.equals(another.signature) &&
+        TUtil.checkEquals(params, another.params);
   }
 
   public String toJson() {

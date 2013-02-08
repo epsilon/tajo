@@ -14,13 +14,15 @@
 
 package tajo.algebra;
 
+import tajo.util.TUtil;
+
 import java.util.Map;
 
 public class CreateTable extends Expr {
   private String rel_name;
+  private ColumnDefinition [] table_elements;
   private String storage_type;
   private String location;
-  private ColumnDefinition [] table_elements;
   private Expr subquery;
   private Map<String, String> params;
 
@@ -94,6 +96,17 @@ public class CreateTable extends Expr {
     return subquery;
   }
 
+  @Override
+  boolean equalsTo(Expr expr) {
+    CreateTable another = (CreateTable) expr;
+    return rel_name.equals(another.rel_name) &&
+        TUtil.checkEquals(table_elements, another.table_elements) &&
+        TUtil.checkEquals(storage_type, another.storage_type) &&
+        TUtil.checkEquals(location, another.location) &&
+        TUtil.checkEquals(subquery, another.subquery) &&
+        TUtil.checkEquals(params, another.params);
+  }
+
   public static class ColumnDefinition {
     String col_name;
     String data_type;
@@ -109,6 +122,15 @@ public class CreateTable extends Expr {
 
     public String getDataType() {
       return this.data_type;
+    }
+
+    public boolean equals(Object obj) {
+      if (obj instanceof ColumnDefinition) {
+        ColumnDefinition another = (ColumnDefinition) obj;
+        return col_name.equals(another.col_name) && data_type.equals(another.data_type);
+      }
+
+      return false;
     }
   }
 }

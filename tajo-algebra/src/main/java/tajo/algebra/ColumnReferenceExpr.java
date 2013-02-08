@@ -14,6 +14,8 @@
 
 package tajo.algebra;
 
+import tajo.util.TUtil;
+
 public class ColumnReferenceExpr extends Expr {
   private String rel_name;
   private String column_name;
@@ -33,5 +35,11 @@ public class ColumnReferenceExpr extends Expr {
 
   public String getRelationName() {
     return this.rel_name;
+  }
+
+  public boolean equalsTo(Expr expr) {
+    ColumnReferenceExpr another = (ColumnReferenceExpr) expr;
+    return column_name.equals(another.column_name) &&
+        TUtil.checkEquals(rel_name, another.rel_name);
   }
 }

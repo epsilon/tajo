@@ -25,9 +25,10 @@ import tajo.util.TUtil;
 public class Selection extends UnaryOperator implements JsonSerializable {
   private Expr search_condition;
 
-  public Selection(Expr relation) {
+  public Selection(Expr relation, Expr qual) {
     super(ExprType.Selection);
     setChild(relation);
+    search_condition = qual;
   }
 
   public boolean hasQual() {
@@ -46,14 +47,13 @@ public class Selection extends UnaryOperator implements JsonSerializable {
   public String toJson() {
     return JsonHelper.toJson(this);
   }
-  
+
   @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof Selection) {
-      Selection other = (Selection) obj;
+  public boolean equalsTo(Expr expr) {
+    if (expr instanceof Selection) {
+      Selection other = (Selection) expr;
       return TUtil.checkEquals(search_condition, other.search_condition);
     }
-
     return false;
   }
 }

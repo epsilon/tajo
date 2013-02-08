@@ -16,13 +16,9 @@ package tajo.algebra;
 
 import tajo.util.TUtil;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class Aggregation extends UnaryOperator {
   private Target [] targets;
-  private List<GroupElement> groups = new ArrayList<>();
+  private GroupElement [] groups;
   private Expr havingCondition;
 
   public Aggregation() {
@@ -49,17 +45,26 @@ public class Aggregation extends UnaryOperator {
     this.havingCondition = expr;
   }
 
-
-  public void addGroupSet(GroupElement group) {
-    groups.add(group);
+  public void setGroups(GroupElement [] groups) {
+    this.groups = groups;
   }
 
   public boolean isEmptyGrouping() {
-    return groups.isEmpty();
+    return groups.length == 0;
   }
 
-  public List<GroupElement> getGroupSet() {
-    return Collections.unmodifiableList(groups);
+  public GroupElement [] getGroupSet() {
+    return groups;
+  }
+
+  @Override
+  public boolean equalsTo(Expr expr) {
+    Aggregation another = (Aggregation) expr;
+    boolean a = TUtil.checkEquals(groups, another.groups);
+    boolean b = TUtil.checkEquals(targets, another.targets);
+    boolean c = TUtil.checkEquals(havingCondition, another.havingCondition);
+
+    return a && b && c;
   }
 
   public static class GroupElement implements JsonSerializable {

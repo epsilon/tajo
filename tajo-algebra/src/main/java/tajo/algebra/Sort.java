@@ -37,12 +37,10 @@ public class Sort extends UnaryOperator {
     return JsonHelper.toJson(this);
   }
 
-  public boolean equals(Object obj) {
-    if (obj instanceof Sort) {
-      return TUtil.checkEquals(sort_specs, ((Sort)obj).sort_specs);
-    }
-
-    return false;
+  @Override
+  public boolean equalsTo(Expr expr) {
+    Sort another = (Sort) expr;
+    return TUtil.checkEquals(sort_specs, another.sort_specs);
   }
 
   public static class SortSpec {

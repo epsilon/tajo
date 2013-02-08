@@ -43,4 +43,9 @@ public class BinaryOperator extends Expr {
   public void setRight(Expr right) {
     this.right = right;
   }
+
+  @Override
+  boolean equalsTo(Expr expr) {
+    return true;
+  }
 }

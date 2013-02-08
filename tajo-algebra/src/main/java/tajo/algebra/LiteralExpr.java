@@ -38,4 +38,12 @@ public class LiteralExpr extends Expr {
   public LiteralType getValueType() {
     return this.value_type;
   }
+
+  public boolean equalsTo(Expr expr) {
+    LiteralExpr another = (LiteralExpr) expr;
+    boolean a = value_type.equals(another.value_type);
+    boolean b =  value.equals(another.value);
+
+    return a && b;
+  }
 }

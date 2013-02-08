@@ -26,6 +26,11 @@ public class TableSubQuery extends Relation {
     return subquery;
   }
 
+  @Override
+  boolean equalsTo(Expr expr) {
+    return subquery.equals(subquery);
+  }
+
   public String toJson() {
     return JsonHelper.toJson(this);
   }

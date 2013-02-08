@@ -14,6 +14,8 @@
 
 package tajo.algebra;
 
+import tajo.util.TUtil;
+
 public class Join extends BinaryOperator {
   private JoinType join_type;
   private Expr join_qual;
@@ -59,6 +61,14 @@ public class Join extends BinaryOperator {
 
   public boolean isNatural() {
     return natural;
+  }
+
+  boolean equalsTo(Expr expr) {
+    Join another = (Join) expr;
+    return join_type.equals(another.join_type) &&
+        TUtil.checkEquals(join_qual, another.join_qual) &&
+        TUtil.checkEquals(join_columns, another.join_columns) &&
+        natural == another.natural;
   }
 
   @Override

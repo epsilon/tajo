@@ -34,4 +34,9 @@ public class SetOperation extends BinaryOperator {
   public void unsetDistinct() {
     distinct = false;
   }
+
+  boolean equalsTo(Expr expr) {
+    SetOperation another = (SetOperation) expr;
+    return distinct == another.distinct;
+  }
 }

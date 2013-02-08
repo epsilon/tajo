@@ -37,14 +37,10 @@ public class Relation extends Expr {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof  Relation) {
-      Relation other = (Relation) obj;
-      return TUtil.checkEquals(rel_name, other.rel_name) &&
-          TUtil.checkEquals(alias, other.alias);
-    }
-
-    return false;
+  boolean equalsTo(Expr expr) {
+    Relation other = (Relation) expr;
+    return TUtil.checkEquals(rel_name, other.rel_name) &&
+        TUtil.checkEquals(alias, other.alias);
   }
 
   @Override

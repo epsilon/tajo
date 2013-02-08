@@ -47,6 +47,11 @@ public class CaseWhenExpr extends Expr {
   }
 
   @Override
+  boolean equalsTo(Expr expr) {
+    return false;
+  }
+
+  @Override
   public String toJson() {
     return JsonHelper.toJson(this);
   }
@@ -66,6 +71,14 @@ public class CaseWhenExpr extends Expr {
 
     public Expr getResult() {
       return this.result;
+    }
+
+    public boolean equals(Object obj) {
+      if (obj instanceof WhenExpr) {
+        WhenExpr another = (WhenExpr) obj;
+      }
+
+      return false;
     }
   }
 }

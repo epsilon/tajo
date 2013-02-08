@@ -33,14 +33,14 @@ public class Sort extends UnaryOperator {
   }
 
   @Override
-  public String toJson() {
-    return JsonHelper.toJson(this);
-  }
-
-  @Override
   public boolean equalsTo(Expr expr) {
     Sort another = (Sort) expr;
     return TUtil.checkEquals(sort_specs, another.sort_specs);
+  }
+
+  @Override
+  public String toJson() {
+    return JsonHelper.toJson(this);
   }
 
   public static class SortSpec {

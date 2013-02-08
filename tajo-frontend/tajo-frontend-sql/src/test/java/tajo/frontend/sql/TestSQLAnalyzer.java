@@ -17,9 +17,7 @@ package tajo.frontend.sql;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.algebra.*;
-
-import java.util.Iterator;
-import java.util.List;
+import tajo.algebra.Aggregation.GroupElement;
 
 import static junit.framework.Assert.*;
 import static tajo.algebra.Aggregation.GroupType;
@@ -111,8 +109,8 @@ public class TestSQLAnalyzer {
     assertEquals(ExprType.Aggregation, expr.getType());
     Aggregation aggregation = (Aggregation) expr;
 
-    assertEquals(1, aggregation.getGroupSet().size());
-    assertEquals("age", aggregation.getGroupSet().get(0).getColumns()[0].getName());
+    assertEquals(1, aggregation.getGroupSet().length);
+    assertEquals("age", aggregation.getGroupSet()[0].getColumns()[0].getName());
     assertTrue(aggregation.hasHavingCondition());
     assertEquals(ExprType.GreaterThan, aggregation.getHavingCondition().getType());
   }
@@ -122,11 +120,11 @@ public class TestSQLAnalyzer {
     Expr expr = analyzer.parse(GROUP_BY[1]);
     assertEquals(ExprType.Aggregation, expr.getType());
     Aggregation aggregation = (Aggregation) expr;
-    assertEquals(1, aggregation.getGroupSet().size());
-    assertEquals(GroupType.CUBE, aggregation.getGroupSet().get(0).getType());
-    List<Aggregation.GroupElement> groups = aggregation.getGroupSet();
-    assertEquals("name", groups.get(0).getColumns()[0].getName());
-    assertEquals("age", groups.get(0).getColumns()[1].getName());
+    assertEquals(1, aggregation.getGroupSet().length);
+    assertEquals(GroupType.CUBE, aggregation.getGroupSet()[0].getType());
+    GroupElement[] groups = aggregation.getGroupSet();
+    assertEquals("name", groups[0].getColumns()[0].getName());
+    assertEquals("age", groups[0].getColumns()[1].getName());
   }
 
   @Test
@@ -135,11 +133,11 @@ public class TestSQLAnalyzer {
     assertEquals(ExprType.Aggregation, expr.getType());
     Aggregation aggregation = (Aggregation) expr;
 
-    assertEquals(1, aggregation.getGroupSet().size());
-    assertEquals(GroupType.ROLLUP, aggregation.getGroupSet().get(0).getType());
-    List<Aggregation.GroupElement> groups = aggregation.getGroupSet();
-    assertEquals("name", groups.get(0).getColumns()[0].getName());
-    assertEquals("age", groups.get(0).getColumns()[1].getName());
+    assertEquals(1, aggregation.getGroupSet().length);
+    assertEquals(GroupType.ROLLUP, aggregation.getGroupSet()[0].getType());
+    GroupElement [] groups = aggregation.getGroupSet();
+    assertEquals("name", groups[0].getColumns()[0].getName());
+    assertEquals("age", groups[0].getColumns()[1].getName());
   }
 
   @Test
@@ -147,15 +145,15 @@ public class TestSQLAnalyzer {
     Expr expr = analyzer.parse(GROUP_BY[3]);
     assertEquals(ExprType.Aggregation, expr.getType());
     Aggregation aggregation = (Aggregation) expr;
-    assertEquals(3, aggregation.getGroupSet().size());
-    Iterator<Aggregation.GroupElement> it = aggregation.getGroupSet().iterator();
-    Aggregation.GroupElement group = it.next();
+    assertEquals(3, aggregation.getGroupSet().length);
+    int gid = 0;
+    GroupElement group = aggregation.getGroupSet()[gid++];
     assertEquals(GroupType.CUBE, group.getType());
     assertEquals("name", group.getColumns()[0].getName());
-    group = it.next();
+    group = aggregation.getGroupSet()[gid++];
     assertEquals(GroupType.ROLLUP, group.getType());
     assertEquals("age", group.getColumns()[0].getName());
-    group = it.next();
+    group = aggregation.getGroupSet()[gid++];
     assertEquals(GroupType.GROUPBY, group.getType());
     assertEquals("id", group.getColumns()[0].getName());
   }

@@ -472,7 +472,7 @@ public class SQLAnalyzer {
         groups.add(g);
       }
 
-      clause
+      clause.setGroups(groups.toArray(new GroupElement[groups.size()]));
     }
     return clause;
   }

@@ -14,7 +14,7 @@
 
 package tajo.algebra;
 
-import java.util.Arrays;
+import tajo.util.TUtil;
 
 public class Projection extends UnaryOperator implements Cloneable {
   private boolean project_all;
@@ -49,20 +49,13 @@ public class Projection extends UnaryOperator implements Cloneable {
   public void setTargets(Target [] targets) {
     this.targets = targets;
   }
-	
-	@Override
-  public boolean equals(Object obj) {
-	  if (obj instanceof Projection) {
-	    Projection other = (Projection) obj;
-	    
-	    boolean b1 = super.equals(other);
-	    boolean b2 = Arrays.equals(targets, other.targets);
-	    
-	    return b1 && b2;
-	  } else {
-	    return false;
-	  }
-	}
+
+  @Override
+  boolean equalsTo(Expr expr) {
+    Projection another = (Projection) expr;
+    return TUtil.checkEquals(project_all, another.project_all) &&
+        TUtil.checkEquals(targets, another.targets);
+  }
 
   @Override
   public String toJson() {

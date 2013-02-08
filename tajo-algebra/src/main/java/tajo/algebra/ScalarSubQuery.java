@@ -25,6 +25,12 @@ public class ScalarSubQuery extends Expr {
     return this.subquery;
   }
 
+  @Override
+  boolean equalsTo(Expr expr) {
+    ScalarSubQuery another = (ScalarSubQuery) expr;
+    return subquery.equals(another);
+  }
+
   public String toJson() {
     return JsonHelper.toJson(this);
   }

@@ -23,7 +23,7 @@ public class Limit extends UnaryOperator {
     this.fetch_first_num = fetch_first_num;
   }
 
-  public Expr getLimitRow() {
+  public Expr getFetchFirstNum() {
     return this.fetch_first_num;
   }
 
@@ -37,8 +37,9 @@ public class Limit extends UnaryOperator {
     return JsonHelper.toJson(this);
   }
 
-  public boolean equals(Object obj) {
-    return obj instanceof Limit &&
-        fetch_first_num.equals(obj);
+  @Override
+  boolean equalsTo(Expr expr) {
+    Limit another = (Limit) expr;
+    return fetch_first_num.equals(another.fetch_first_num);
   }
 }

@@ -37,4 +37,11 @@ public class LikeExpr extends BinaryOperator {
   public Expr getPattern() {
     return this.pattern;
   }
+
+  boolean equalsTo(Expr expr) {
+    LikeExpr another = (LikeExpr) expr;
+    return not == another.not &&
+        column_ref.equals(another.column_ref) &&
+        pattern.equals(another.pattern);
+  }
 }

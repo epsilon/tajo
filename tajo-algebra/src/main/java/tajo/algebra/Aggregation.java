@@ -50,7 +50,7 @@ public class Aggregation extends UnaryOperator {
   }
 
   public boolean isEmptyGrouping() {
-    return groups.length == 0;
+    return groups == null || groups.length == 0;
   }
 
   public GroupElement [] getGroupSet() {

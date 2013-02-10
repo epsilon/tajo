@@ -66,7 +66,7 @@ public class GsonCreator {
 	public static Gson getInstance() {
 	  init();
 	  if (gson == null ) {
-	    gson = builder.create();
+	    gson = builder.setPrettyPrinting().create();
 	  }
 	  return gson;
 	}

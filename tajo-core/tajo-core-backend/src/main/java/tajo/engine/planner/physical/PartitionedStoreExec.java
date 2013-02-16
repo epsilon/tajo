@@ -105,7 +105,6 @@ public final class PartitionedStoreExec extends UnaryPhysicalExec {
       appender = appenderMap.get(partition);
     }
 
-    LOG.info("======================================================");
     return appender;
   }
 

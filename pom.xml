@@ -83,12 +83,12 @@
   <modules>
     <module>tajo-project</module>
     <module>tajo-common</module>
+    <module>tajo-algebra</module>
+    <module>tajo-frontend</module>
     <module>tajo-core</module>
     <module>tajo-rpc</module>
     <module>tajo-catalog</module>
     <module>tajo-dist</module>
-    <module>tajo-algebra</module>
-    <module>tajo-frontend</module>
   </modules>
 
   <build>

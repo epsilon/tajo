@@ -442,8 +442,10 @@ public class TestGlobalQueryPlanner {
     TableDesc desc1 = new TableDescImpl("table1", meta1, new Path("/"));
     TableDesc desc2 = new TableDescImpl("table2", meta1, new Path("/"));
 
-    QueryBlock.FromTable table1 = new QueryBlock.FromTable(desc1);
-    QueryBlock.FromTable table2 = new QueryBlock.FromTable(desc2);
+    QueryBlock.FromTable table1 = new QueryBlock.FromTable(desc1.getId(),
+        desc1.getMeta().getSchema());
+    QueryBlock.FromTable table2 = new QueryBlock.FromTable(desc2.getId(),
+        desc2.getMeta().getSchema());
     ScanNode scan1 = new ScanNode(table1);
     ScanNode scan2 = new ScanNode(table2);
 

@@ -4,13 +4,12 @@ import com.google.gson.annotations.Expose;
 import tajo.catalog.json.GsonCreator;
 
 public class SortSpec implements Cloneable {
-  @Expose
-  private Column sortKey;
+  @Expose private Column key;
   @Expose private boolean ascending = true;
-  @Expose private boolean nullFirst = false;
+  @Expose private boolean null_first = false;
 
-  public SortSpec(final Column sortKey) {
-    this.sortKey = sortKey;
+  public SortSpec(final Column key) {
+    this.key = key;
   }
 
   /**
@@ -24,7 +23,7 @@ public class SortSpec implements Cloneable {
                   final boolean nullFirst) {
     this(sortKey);
     this.ascending = asc;
-    this.nullFirst = nullFirst;
+    this.null_first = nullFirst;
   }
 
   public final boolean isAscending() {
@@ -36,33 +35,33 @@ public class SortSpec implements Cloneable {
   }
 
   public final boolean isNullFirst() {
-    return this.nullFirst;
+    return this.null_first;
   }
 
   public final void setNullFirst() {
-    this.nullFirst = true;
+    this.null_first = true;
   }
 
-  public final Column getSortKey() {
-    return this.sortKey;
+  public final Column getKey() {
+    return this.key;
   }
 
   @Override
   public Object clone() throws CloneNotSupportedException {
     SortSpec key = (SortSpec) super.clone();
-    key.sortKey = (Column) sortKey.clone();
+    key.key = (Column) this.key.clone();
     key.ascending = ascending;
 
     return key;
   }
 
   public String toJSON() {
-    sortKey.initFromProto();
+    key.mergeProtoToLocal();
     return GsonCreator.getInstance().toJson(this);
   }
 
   public String toString() {
-    return "Sortkey (key="+sortKey
+    return "Sortkey (key="+ key
         + " "+(ascending ? "asc" : "desc")+")";
   }
 }

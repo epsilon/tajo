@@ -77,8 +77,8 @@ public class IndexScanNode extends ScanNode {
       eq = eq && this.sortKeys.length == other.sortKeys.length;
       if(eq) {
         for(int i = 0 ; i < this.sortKeys.length ; i ++) {
-          eq = eq && this.sortKeys[i].getSortKey().equals(
-              other.sortKeys[i].getSortKey());
+          eq = eq && this.sortKeys[i].getKey().equals(
+              other.sortKeys[i].getKey());
           eq = eq && this.sortKeys[i].isAscending()
               == other.sortKeys[i].isAscending();
           eq = eq && this.sortKeys[i].isNullFirst()

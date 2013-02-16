@@ -497,7 +497,7 @@ public class LogicalOptimizer {
         SortNode sortNode = (SortNode) node;
 
         for (SortSpec spec : sortNode.getSortKeys()) {
-          necessary.add(spec.getSortKey());
+          necessary.add(spec.getKey());
         }
 
         stack.add(sortNode);

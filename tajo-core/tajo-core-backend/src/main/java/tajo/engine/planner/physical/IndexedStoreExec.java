@@ -61,7 +61,7 @@ public class IndexedStoreExec extends UnaryPhysicalExec {
 
     Column col;
     for (int i = 0 ; i < sortSpecs.length; i++) {
-      col = sortSpecs[i].getSortKey();
+      col = sortSpecs[i].getKey();
       indexKeys[i] = inSchema.getColumnId(col.getQualifiedName());
     }
 

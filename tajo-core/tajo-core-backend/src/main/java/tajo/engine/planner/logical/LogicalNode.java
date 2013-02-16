@@ -7,8 +7,7 @@ import com.google.gson.annotations.Expose;
 import tajo.catalog.Schema;
 
 /**
- * @author Hyunsik Choi
- *
+ * Logical Expression with Annotations
  */
 public abstract class LogicalNode implements Cloneable {
 	@Expose
@@ -35,14 +34,6 @@ public abstract class LogicalNode implements Cloneable {
 
 	public void setType(ExprType type) {
 		this.type = type;
-	}
-
-	public double getCost() {
-		return this.cost;
-	}
-
-	public void setCost(double cost) {
-		this.cost = cost;
 	}
 	
 	public void setInSchema(Schema inSchema) {

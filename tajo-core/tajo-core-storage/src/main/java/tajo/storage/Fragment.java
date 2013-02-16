@@ -248,7 +248,7 @@ public class Fragment implements TableDesc, Comparable<Fragment>, SchemaObject {
   
   public Object clone() throws CloneNotSupportedException {
     Fragment frag = (Fragment) super.clone();
-    initFromProto();
+    mergeLocalToBuilder();
     frag.proto = null;
     frag.viaProto = false;
     frag.builder = TabletProto.newBuilder();
@@ -314,8 +314,9 @@ public class Fragment implements TableDesc, Comparable<Fragment>, SchemaObject {
       builder.setDistCached(this.distCached);
     }
   }
-  
-  private void mergeProtoToLocal() {
+
+  @Override
+  public void mergeProtoToLocal() {
 	  TabletProtoOrBuilder p = viaProto ? proto : builder;
 	  if (fragmentId == null && p.hasId()) {
 	    fragmentId = p.getId();
@@ -325,6 +326,7 @@ public class Fragment implements TableDesc, Comparable<Fragment>, SchemaObject {
 	  }
 	  if (meta == null && p.hasMeta()) {
 		  meta = new TableMetaImpl(p.getMeta());
+      meta.mergeProtoToLocal();
 	  }
 	  if (startOffset == null && p.hasStartOffset()) {
 		  startOffset = p.getStartOffset();
@@ -339,14 +341,8 @@ public class Fragment implements TableDesc, Comparable<Fragment>, SchemaObject {
 
   @Override
   public String toJSON() {
-	  initFromProto();
+	  mergeProtoToLocal();
 	  Gson gson = GsonCreator.getInstance();
 	  return gson.toJson(this, TableDesc.class);
-  }
-
-  @Override
-  public void initFromProto() {
-	  mergeProtoToLocal();
-    meta.initFromProto();
   }
 }

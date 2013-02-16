@@ -87,13 +87,9 @@ public final class PartitionedStoreExec extends UnaryPhysicalExec {
     FileSystem fs = new RawLocalFileSystem();
     fs.mkdirs(storeTablePath);
   }
-  int called = 0;
   
   private Appender getAppender(int partition) throws IOException {
-    LOG.info("======================================================");
-    LOG.info("getAppender called " + called++);
     Appender appender = appenderMap.get(partition);
-    LOG.info("appender: " + appender + " " + "from partition ("+partition+")");
 
     if (appender == null) {
       Path dataFile = getDataFile(partition);

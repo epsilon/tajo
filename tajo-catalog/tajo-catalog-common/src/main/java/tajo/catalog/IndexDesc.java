@@ -187,7 +187,7 @@ public class IndexDesc implements ProtoObject<IndexDescProto>, Cloneable {
   }
   
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     IndexDescProtoOrBuilder p = viaProto ? proto : builder;
     if (this.name == null && p.hasName()) {
       this.name = p.getName();
@@ -235,7 +235,7 @@ public class IndexDesc implements ProtoObject<IndexDescProto>, Cloneable {
   
   public Object clone() throws CloneNotSupportedException {
     IndexDesc desc = (IndexDesc) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     desc.name = name;
     desc.tableId = tableId;
     desc.column = (Column) column.clone();

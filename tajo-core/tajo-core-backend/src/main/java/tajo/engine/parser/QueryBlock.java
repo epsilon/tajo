@@ -482,36 +482,32 @@ public class QueryBlock extends ParseTree {
   }
 
   public static class FromTable implements Cloneable {
-    @Expose
-    private TableDesc desc;
-    @Expose
-    private String alias = null;
+    @Expose private String tableName;
+    @Expose private Schema schema;
+    @Expose private String alias = null;
 
     public FromTable() {}
 
-    public FromTable(final TableDesc desc) {
-      this.desc = desc;
+    public FromTable(String tableName, Schema schema) {
+      this.tableName = tableName;
+      this.schema = schema;
     }
 
-    public FromTable(final TableDesc desc, final String alias) {
-      this(desc);
+    public FromTable(String tableName, final Schema schema, final String alias) {
+      this(tableName, schema);
       this.alias = alias;
     }
 
     public final String getTableName() {
-      return desc.getId();
+      return tableName;
     }
 
     public final String getTableId() {
-      return alias == null ? desc.getId() : alias;
-    }
-
-    public final CatalogProtos.StoreType getStoreType() {
-      return desc.getMeta().getStoreType();
+      return alias == null ? tableName : alias;
     }
 
     public final Schema getSchema() {
-      return desc.getMeta().getSchema();
+      return schema;
     }
 
     public final void setAlias(String alias) {
@@ -528,15 +524,15 @@ public class QueryBlock extends ParseTree {
 
     public final String toString() {
       if (alias != null)
-        return desc.getId() + " as " + alias;
+        return tableName + " as " + alias;
       else
-        return desc.getId();
+        return tableName;
     }
 
     public boolean equals(Object obj) {
       if (obj instanceof FromTable) {
         FromTable other = (FromTable) obj;
-        return this.desc.equals(other.desc)
+        return tableName.equals(other.tableName)
             && TUtil.checkEquals(this.alias, other.alias);
       } else {
         return false;
@@ -546,14 +542,13 @@ public class QueryBlock extends ParseTree {
     @Override
     public Object clone() throws CloneNotSupportedException {
       FromTable table = (FromTable) super.clone();
-      table.desc = (TableDesc) desc.clone();
+      table.tableName = tableName;
       table.alias = alias;
 
       return table;
     }
 
     public String toJSON() {
-      desc.initFromProto();
       Gson gson = GsonCreator.getInstance();
       return gson.toJson(this, FromTable.class);
     }

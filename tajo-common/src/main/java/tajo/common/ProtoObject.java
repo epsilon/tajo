@@ -23,6 +23,6 @@ package tajo.common;
 import com.google.protobuf.Message;
 
 public interface ProtoObject<P extends Message> {
-	public void initFromProto();
+	public void mergeProtoToLocal();
 	public P getProto();
 }

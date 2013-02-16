@@ -45,7 +45,7 @@ public class IndexUtil {
     builder.append(fragment.getPath().getName() + "_");
     builder.append(fragment.getStartOffset() + "_" + fragment.getLength() + "_");
     for(int i = 0 ; i < keys.length ; i ++) {
-      builder.append(keys[i].getSortKey().getColumnName()+"_");
+      builder.append(keys[i].getKey().getColumnName()+"_");
     }
     builder.append("_index");
     return builder.toString();
@@ -56,7 +56,7 @@ public class IndexUtil {
     StringBuilder builder = new StringBuilder();
     builder.append(indexName + "_");
     for(int i = 0 ; i < keys.length ; i ++) {
-      builder.append(keys[i].getSortKey().getColumnName() + "_");
+      builder.append(keys[i].getKey().getColumnName() + "_");
     }
     return builder.toString();
   }
@@ -89,7 +89,7 @@ public class IndexUtil {
         for(int i = 0 ; i < sortKey.length ; i ++) {
           for(int j = 0 ; j < nodeList.size() ; j ++) {
             Column col = ((FieldEval)(nodeList.get(j).getLeftExpr())).getColumnRef();
-            if(col.equals(sortKey[i].getSortKey())) {
+            if(col.equals(sortKey[i].getKey())) {
               equal[i] = true;
             }
           }
@@ -111,7 +111,7 @@ public class IndexUtil {
     } else {
       Schema keySchema = new Schema();
       for(int i = 0 ; i < maxIndex.length ; i ++ ) {
-        keySchema.addColumn(maxIndex[i].getSortKey());
+        keySchema.addColumn(maxIndex[i].getKey());
       }
       Datum[] datum = new Datum[nodeList.size()];
       for(int i = 0 ; i < nodeList.size() ; i ++ ) {

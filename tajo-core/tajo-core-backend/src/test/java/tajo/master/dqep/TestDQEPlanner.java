@@ -1,6 +1,5 @@
 package tajo.master.dqep;
 
-import com.sun.org.apache.xml.internal.resolver.Catalog;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;

@@ -136,7 +136,7 @@ public class TableDescImpl implements TableDesc, ProtoObject<TableDescProto>,
 	
 	public Object clone() throws CloneNotSupportedException {	  
 	  TableDescImpl desc = (TableDescImpl) super.clone();
-	  initFromProto();
+	  mergeProtoToLocal();
 	  desc.proto = null;
 	  desc.builder = TableDescProto.newBuilder();
 	  desc.viaProto = false;
@@ -154,7 +154,7 @@ public class TableDescImpl implements TableDesc, ProtoObject<TableDescProto>,
 	}
 	
 	public String toJSON() {
-		initFromProto();
+		mergeProtoToLocal();
 		Gson gson = GsonCreator.getInstance();
 		
 		return gson.toJson(this, TableDesc.class);
@@ -194,8 +194,9 @@ public class TableDescImpl implements TableDesc, ProtoObject<TableDescProto>,
       builder.setMeta(meta.getProto());
     }
   }
-  
-  private void mergeProtoToLocal() {
+
+  @Override
+  public void mergeProtoToLocal() {
 	  TableDescProtoOrBuilder p = viaProto ? proto : builder;
 	  if (tableId == null && p.hasId()) {
 		  tableId = p.getId();
@@ -205,12 +206,7 @@ public class TableDescImpl implements TableDesc, ProtoObject<TableDescProto>,
 	  }
 	  if (meta == null && p.hasMeta()) {
 		  meta = new TableMetaImpl(p.getMeta());
+      meta.mergeProtoToLocal();
 	  }
-  }
-
-  @Override
-  public void initFromProto() {
-	  mergeProtoToLocal();
-    meta.initFromProto();
   }
 }

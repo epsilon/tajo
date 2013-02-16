@@ -57,7 +57,7 @@ public class Options implements ProtoObject<KeyValueSetProto>, Cloneable {
 	
 	public Options(Options options) {
 	  this();
-	  options.initFromProto();
+	  options.mergeProtoToLocal();
 	  this.keyVals = Maps.newHashMap(options.keyVals);
 	}
 	
@@ -124,7 +124,7 @@ public class Options implements ProtoObject<KeyValueSetProto>, Cloneable {
 	@Override
   public Object clone() throws CloneNotSupportedException {    
     Options options = (Options) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     options.proto = null;
     options.viaProto = false;
     options.builder = KeyValueSetProto.newBuilder();
@@ -174,12 +174,12 @@ public class Options implements ProtoObject<KeyValueSetProto>, Cloneable {
 	}
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     initOptions();
   }
   
   public String toJSON() {
-    initFromProto();
+    mergeProtoToLocal();
     return GsonCreator.getInstance().toJson(this, Options.class);
   }
 }

@@ -125,7 +125,7 @@ public class Column implements ProtoObject<ColumnProto>, Cloneable {
   @Override
   public Object clone() throws CloneNotSupportedException {
     Column column = (Column) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     column.proto = null;
     column.viaProto = false;
     column.builder = ColumnProto.newBuilder();
@@ -169,12 +169,12 @@ public class Column implements ProtoObject<ColumnProto>, Cloneable {
 	}
 	
 	public String toJSON() {
-		initFromProto();
+		mergeProtoToLocal();
 		return GsonCreator.getInstance().toJson(this);
 	}
 
 	@Override
-	public void initFromProto() {
+	public void mergeProtoToLocal() {
 		ColumnProtoOrBuilder p = viaProto ? proto : builder;
 		if (this.name == null && p.hasColumnName()) {
 			this.name = p.getColumnName();

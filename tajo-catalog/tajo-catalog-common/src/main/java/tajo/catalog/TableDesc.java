@@ -34,12 +34,12 @@ public interface TableDesc extends Cloneable {
   Path getPath();
   
   void setMeta(TableMeta info);
+
+  void mergeProtoToLocal();
   
   TableMeta getMeta();
   
   Message getProto();
-  
-  void initFromProto();
   
   String toJSON();
  

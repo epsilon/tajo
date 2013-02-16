@@ -272,7 +272,7 @@ public class QueryUnitRequestImpl implements QueryUnitRequest {
 	}
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     QueryUnitRequestProtoOrBuilder p = viaProto ? proto : builder;
     if (id == null && p.hasId()) {
       this.id = new QueryUnitAttemptId(p.getId());

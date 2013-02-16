@@ -167,8 +167,8 @@ public class TableStat implements ProtoObject<TableStatProto>, Cloneable {
   public boolean equals(Object obj) {
     if (obj instanceof TableStat) {
       TableStat other = (TableStat) obj;
-      initFromProto();
-      other.initFromProto();
+      mergeProtoToLocal();
+      other.mergeProtoToLocal();
 
       return this.numRows.equals(other.numRows)
           && this.numBytes.equals(other.numBytes)
@@ -188,7 +188,7 @@ public class TableStat implements ProtoObject<TableStatProto>, Cloneable {
 
   public Object clone() throws CloneNotSupportedException {
     TableStat stat = (TableStat) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     stat.numRows = numRows;
     stat.numBytes = numBytes;
     stat.numBlocks = numBlocks;
@@ -223,7 +223,7 @@ public class TableStat implements ProtoObject<TableStatProto>, Cloneable {
   }
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     TableStatProtoOrBuilder p = viaProto ? proto : builder;
     if (this.numRows == null && p.hasNumRows()) {
       this.numRows = p.getNumRows();
@@ -243,7 +243,7 @@ public class TableStat implements ProtoObject<TableStatProto>, Cloneable {
 
     initColumnStats();
     for (ColumnStat col : columnStats) {
-      col.initFromProto();
+      col.mergeProtoToLocal();
     }
   }
 

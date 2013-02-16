@@ -28,8 +28,7 @@ import tajo.util.TUtil;
  *
  */
 public final class SortNode extends UnaryNode implements Cloneable {
-	@Expose
-  private SortSpec[] sortKeys;
+	@Expose private SortSpec[] sortKeys;
 	
 	public SortNode() {
 		super();
@@ -75,7 +74,7 @@ public final class SortNode extends UnaryNode implements Cloneable {
   public String toString() {
     StringBuilder sb = new StringBuilder("Sort [key= ");
     for (int i = 0; i < sortKeys.length; i++) {    
-      sb.append(sortKeys[i].getSortKey().getQualifiedName()).append(" ")
+      sb.append(sortKeys[i].getKey().getQualifiedName()).append(" ")
           .append(sortKeys[i].isAscending() ? "asc" : "desc");
       if(i < sortKeys.length - 1) {
         sb.append(",");

@@ -40,14 +40,10 @@ public class TableMetaImpl implements TableMeta {
 	protected TableProto.Builder builder = null;
 	protected boolean viaProto = false;	
 	
-	@Expose
-	protected Schema schema;
-	@Expose
-	protected StoreType storeType;
-	@Expose
-	protected Options options;
-	@Expose
-	protected TableStat stat;
+	@Expose protected Schema schema;
+	@Expose protected StoreType storeType;
+	@Expose protected Options options;
+	@Expose	protected TableStat stat;
 	
 	private TableMetaImpl() {
 	  builder = TableProto.newBuilder();
@@ -168,7 +164,7 @@ public class TableMetaImpl implements TableMeta {
 	
 	@Override
 	public Object clone() throws CloneNotSupportedException {    
-	  initFromProto();
+	  mergeProtoToLocal();
 	  TableMetaImpl meta = (TableMetaImpl) super.clone();	  
 	  meta.proto = null;
     meta.viaProto = false;
@@ -231,14 +227,17 @@ public class TableMetaImpl implements TableMeta {
 	
   ////////////////////////////////////////////////////////////////////////
   // For Json
-  ////////////////////////////////////////////////////////////////////////	
-	private void mergeProtoToLocal() {
+  ////////////////////////////////////////////////////////////////////////
+  @Override
+  public void mergeProtoToLocal() {
 		TableProtoOrBuilder p = viaProto ? proto : builder;
 		if (schema == null) {
 			schema = new Schema(p.getSchema());
+      schema.mergeProtoToLocal();
 		}
 		if (p.hasStat() && stat == null) {
 		  stat = new TableStat(p.getStat());
+      stat.mergeProtoToLocal();
 		}
 		if (storeType == null && p.hasStoreType()) {
 			storeType = p.getStoreType();
@@ -248,16 +247,8 @@ public class TableMetaImpl implements TableMeta {
 		}
 	}
 	
-	public void initFromProto() {
-		mergeProtoToLocal();
-    schema.initFromProto();
-    if (stat != null) {
-      stat.initFromProto();
-    }
-	}
-	
 	public String toJSON() {
-		initFromProto();
+		mergeProtoToLocal();
 		Gson gson = GsonCreator.getInstance();
 		return gson.toJson(this, TableMeta.class);
 	}

@@ -276,8 +276,8 @@ public class TestPlannerUtil {
     assertEquals(2, sortSpecs.length);
     assertEquals(1, sortSpecs[0].length);
     assertEquals(1, sortSpecs[1].length);
-    assertEquals(outerSchema.getColumnByName("id1"), sortSpecs[0][0].getSortKey());
-    assertEquals(innerSchema.getColumnByName("fid1"), sortSpecs[1][0].getSortKey());
+    assertEquals(outerSchema.getColumnByName("id1"), sortSpecs[0][0].getKey());
+    assertEquals(innerSchema.getColumnByName("fid1"), sortSpecs[1][0].getKey());
 
     // tests for composited join key
     EvalNode joinQual2 = new BinaryEval(EvalNode.Type.EQUAL, f3, f4);
@@ -287,10 +287,10 @@ public class TestPlannerUtil {
     assertEquals(2, sortSpecs.length);
     assertEquals(2, sortSpecs[0].length);
     assertEquals(2, sortSpecs[1].length);
-    assertEquals(outerSchema.getColumnByName("id1"), sortSpecs[0][0].getSortKey());
-    assertEquals(outerSchema.getColumnByName("id2"), sortSpecs[0][1].getSortKey());
-    assertEquals(innerSchema.getColumnByName("fid1"), sortSpecs[1][0].getSortKey());
-    assertEquals(innerSchema.getColumnByName("fid2"), sortSpecs[1][1].getSortKey());
+    assertEquals(outerSchema.getColumnByName("id1"), sortSpecs[0][0].getKey());
+    assertEquals(outerSchema.getColumnByName("id2"), sortSpecs[0][1].getKey());
+    assertEquals(innerSchema.getColumnByName("fid1"), sortSpecs[1][0].getKey());
+    assertEquals(innerSchema.getColumnByName("fid2"), sortSpecs[1][1].getKey());
   }
 
   @Test

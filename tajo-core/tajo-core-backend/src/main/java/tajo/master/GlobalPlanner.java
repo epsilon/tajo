@@ -802,7 +802,7 @@ public class GlobalPlanner {
   private LogicalNode insertOuterScan(BinaryNode parent, String tableId,
       TableMeta meta) throws IOException {
     TableDesc desc = TCatUtil.newTableDesc(tableId, meta, sm.getTablePath(tableId));
-    ScanNode scan = new ScanNode(new FromTable(desc));
+    ScanNode scan = new ScanNode(new FromTable(desc.getId(), desc.getMeta().getSchema()));
     scan.setLocal(true);
     scan.setInSchema(meta.getSchema());
     scan.setOutSchema(meta.getSchema());
@@ -813,7 +813,7 @@ public class GlobalPlanner {
   private LogicalNode insertInnerScan(BinaryNode parent, String tableId, 
       TableMeta meta) throws IOException {
     TableDesc desc = TCatUtil.newTableDesc(tableId, meta, sm.getTablePath(tableId));
-    ScanNode scan = new ScanNode(new FromTable(desc));
+    ScanNode scan = new ScanNode(new FromTable(desc.getId(), desc.getMeta().getSchema()));
     scan.setLocal(true);
     scan.setInSchema(meta.getSchema());
     scan.setOutSchema(meta.getSchema());
@@ -864,7 +864,7 @@ public class GlobalPlanner {
         SortNode sort = (SortNode)store.getSubNode();
         keys = new Column[sort.getSortKeys().length];
         for (int i = 0; i < keys.length; i++) {
-          keys[i] = sort.getSortKeys()[i].getSortKey();
+          keys[i] = sort.getSortKeys()[i].getKey();
         }
       }
     }

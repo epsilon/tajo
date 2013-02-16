@@ -67,7 +67,7 @@ public class IndexWriteNode extends UnaryNode {
 
   public String toJSON() {
     for( int i = 0 ; i < this.sortSpecs.length ; i ++ ) {
-      sortSpecs[i].getSortKey().initFromProto();
+      sortSpecs[i].getKey().mergeProtoToLocal();
     }
     return GsonCreator.getInstance().toJson(this, LogicalNode.class);
   }

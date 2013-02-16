@@ -590,11 +590,11 @@ public class TestLogicalPlanner {
     assertEquals("employee", indexNode.getTableName());
     assertEquals(false, indexNode.isUnique());
     assertEquals(2, indexNode.getSortSpecs().length);
-    assertEquals("name", indexNode.getSortSpecs()[0].getSortKey().getColumnName());
-    assertEquals(DataType.STRING, indexNode.getSortSpecs()[0].getSortKey().getDataType());
+    assertEquals("name", indexNode.getSortSpecs()[0].getKey().getColumnName());
+    assertEquals(DataType.STRING, indexNode.getSortSpecs()[0].getKey().getDataType());
     assertEquals(true, indexNode.getSortSpecs()[0].isNullFirst());
-    assertEquals("empid", indexNode.getSortSpecs()[1].getSortKey().getColumnName());
-    assertEquals(DataType.INT, indexNode.getSortSpecs()[1].getSortKey().getDataType());
+    assertEquals("empid", indexNode.getSortSpecs()[1].getKey().getColumnName());
+    assertEquals(DataType.INT, indexNode.getSortSpecs()[1].getKey().getDataType());
     assertEquals(false, indexNode.getSortSpecs()[1].isAscending());
     assertEquals(false, indexNode.getSortSpecs()[1].isNullFirst());
     assertEquals(IndexMethod.BITMAP, indexNode.getMethod());

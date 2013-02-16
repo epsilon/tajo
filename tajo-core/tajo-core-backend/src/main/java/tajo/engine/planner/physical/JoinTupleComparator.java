@@ -38,8 +38,8 @@ public class JoinTupleComparator implements Comparator<Tuple> {
     this.innerSortKeyIds = new int[numSortKey];
 
     for (int i = 0; i < numSortKey; i++) {
-      this.outerSortKeyIds[i] = leftschema.getColumnId(sortKeys[0][i].getSortKey().getQualifiedName());
-      this.innerSortKeyIds[i] = rightschema.getColumnId(sortKeys[1][i].getSortKey().getQualifiedName());
+      this.outerSortKeyIds[i] = leftschema.getColumnId(sortKeys[0][i].getKey().getQualifiedName());
+      this.innerSortKeyIds[i] = rightschema.getColumnId(sortKeys[1][i].getKey().getQualifiedName());
     }
   }
 

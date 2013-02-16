@@ -266,10 +266,10 @@ public class TestQueryAnalyzer {
   
   private static void testOrderByCluse(QueryBlock block) {
     assertEquals(2, block.getSortKeys().length);
-    assertEquals("people.score", block.getSortKeys()[0].getSortKey().getQualifiedName());
+    assertEquals("people.score", block.getSortKeys()[0].getKey().getQualifiedName());
     assertEquals(true, block.getSortKeys()[0].isAscending());
     assertEquals(false, block.getSortKeys()[0].isNullFirst());
-    assertEquals("people.age", block.getSortKeys()[1].getSortKey().getQualifiedName());
+    assertEquals("people.age", block.getSortKeys()[1].getKey().getQualifiedName());
     assertEquals(false, block.getSortKeys()[1].isAscending());
     assertEquals(true, block.getSortKeys()[1].isNullFirst());
   }
@@ -381,10 +381,10 @@ public class TestQueryAnalyzer {
     
     SortSpec [] sortKeys = stmt.getSortSpecs();
     assertEquals(2, sortKeys.length);
-    assertEquals("score", sortKeys[0].getSortKey().getColumnName());
-    assertEquals(DataType.INT, sortKeys[0].getSortKey().getDataType());
-    assertEquals("age", sortKeys[1].getSortKey().getColumnName());
-    assertEquals(DataType.INT, sortKeys[1].getSortKey().getDataType());
+    assertEquals("score", sortKeys[0].getKey().getColumnName());
+    assertEquals(DataType.INT, sortKeys[0].getKey().getDataType());
+    assertEquals("age", sortKeys[1].getKey().getColumnName());
+    assertEquals(DataType.INT, sortKeys[1].getKey().getDataType());
     assertEquals(false, sortKeys[1].isAscending());
     assertEquals(true, sortKeys[1].isNullFirst());
     

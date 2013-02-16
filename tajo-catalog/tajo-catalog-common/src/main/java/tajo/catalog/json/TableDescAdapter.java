@@ -54,7 +54,7 @@ public class TableDescAdapter implements JsonSerializer<TableDesc>, JsonDeserial
 		jsonObj.addProperty("classname", className);
 
 		if (src.getClass().getSimpleName().equals("TableDescImpl")) {
-			src.initFromProto();
+			src.mergeProtoToLocal();
 		}
 		JsonElement jsonElem = context.serialize(src);
 		jsonObj.add("property", jsonElem);

@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import tajo.catalog.CatalogService;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
+import tajo.catalog.TableDesc;
 import tajo.catalog.proto.CatalogProtos;
 import tajo.catalog.proto.CatalogProtos.DataType;
 import tajo.engine.eval.*;
@@ -145,7 +146,8 @@ public class LogicalPlanner {
   }
 
   private LogicalNode buildCreateIndexPlan(CreateIndexStmt stmt) {
-    FromTable table = new FromTable(catalog.getTableDesc(stmt.getTableName()));
+    TableDesc desc = catalog.getTableDesc(stmt.getTableName());
+    FromTable table = new FromTable(desc.getId(), desc.getMeta().getSchema());
     ScanNode scan = new ScanNode(table);
     scan.setInSchema(table.getSchema());
     scan.setOutSchema(table.getSchema());

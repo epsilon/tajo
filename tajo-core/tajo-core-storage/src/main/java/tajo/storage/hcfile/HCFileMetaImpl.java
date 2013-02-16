@@ -219,7 +219,7 @@ public class HCFileMetaImpl implements ColumnMeta, ProtoObject<ColumnMetaProto> 
   }
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     ColumnMetaProtoOrBuilder p = viaProto ? proto : builder;
     if (this.startRid == null && p.hasStartRid()) {
       this.startRid = p.getStartRid();

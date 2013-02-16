@@ -85,7 +85,7 @@ public class StatSet implements ProtoObject<StatSetProto>, Cloneable {
   
   public Object clone() throws CloneNotSupportedException {
     StatSet group = (StatSet) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     group.stats = Maps.newHashMap();
     for (Stat stat : stats.values()) {
       group.stats.put(stat.getType(), (Stat) stat.clone());
@@ -113,7 +113,7 @@ public class StatSet implements ProtoObject<StatSetProto>, Cloneable {
   }
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     StatSetProtoOrBuilder p = viaProto ? proto : builder;
     if (this.stats == null && p.getStatsCount() > 0) {
       this.stats = Maps.newHashMap();

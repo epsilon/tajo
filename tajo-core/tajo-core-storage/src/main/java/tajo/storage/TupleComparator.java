@@ -54,7 +54,7 @@ public class TupleComparator implements Comparator<Tuple>, ProtoObject<TupleComp
     this.asc = new boolean[sortKeys.length];
     this.nullFirsts = new boolean[sortKeys.length];
     for (int i = 0; i < sortKeys.length; i++) {
-      this.sortKeyIds[i] = schema.getColumnId(sortKeys[i].getSortKey().getQualifiedName());
+      this.sortKeyIds[i] = schema.getColumnId(sortKeys[i].getKey().getQualifiedName());
           
       this.asc[i] = sortKeys[i].isAscending();
       this.nullFirsts[i]= sortKeys[i].isNullFirst();
@@ -137,7 +137,7 @@ public class TupleComparator implements Comparator<Tuple>, ProtoObject<TupleComp
   }
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
   }
 
   @Override

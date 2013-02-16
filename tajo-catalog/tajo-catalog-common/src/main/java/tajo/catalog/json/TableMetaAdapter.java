@@ -49,7 +49,7 @@ public class TableMetaAdapter implements JsonSerializer<TableMeta>, JsonDeserial
 	@Override
 	public JsonElement serialize(TableMeta src, Type typeOfSrc,
 			JsonSerializationContext context) {
-		src.initFromProto();
+		src.mergeProtoToLocal();
 		JsonObject jsonObj = new JsonObject();
 		String className = src.getClass().getCanonicalName();
 		jsonObj.addProperty("classname", className);

@@ -180,7 +180,8 @@ public class GlobalPlannerUtils {
                                      Path inputPath) {
     TableMeta meta = TCatUtil.newTableMeta(inputSchema, StoreType.CSV);
     TableDesc desc = TCatUtil.newTableDesc(inputTableId, meta, inputPath);
-    ScanNode newScan = new ScanNode(new QueryBlock.FromTable(desc));
+    ScanNode newScan = new ScanNode(new QueryBlock.FromTable(desc.getId(),
+        desc.getMeta().getSchema()));
     newScan.setInSchema(desc.getMeta().getSchema());
     newScan.setOutSchema(desc.getMeta().getSchema());
     return newScan;

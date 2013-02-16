@@ -431,7 +431,7 @@ public class TestSQLParser {
   static String[] ddlStatements = {
     "drop table abc",
     "create table name as select * from test",
-    "create table table1 (name varchar, age int, earn long, score float) using csv location '/tmp/data'"
+    "create external table table1 (name varchar, age int, earn long, score float) using csv location '/tmp/data'"
   };
 
   @Test
@@ -439,17 +439,21 @@ public class TestSQLParser {
     Tree ast = parseQuery(ddlStatements[1]);
     assertEquals(ast.getType(), SQLParser.CREATE_TABLE);
     assertEquals(ast.getChild(0).getType(), SQLParser.Regular_Identifier);
-    assertEquals(ast.getChild(1).getType(), SQLParser.SELECT);
+    assertEquals(SQLParser.AS, ast.getChild(1).getType());
   }
   
   @Test
   public void testCreateTableDef() {
     Tree ast = parseQuery(ddlStatements[2]);
-    assertEquals(ast.getType(), SQLParser.CREATE_TABLE);
-    assertEquals(ast.getChild(0).getType(), SQLParser.Regular_Identifier);
-    assertEquals(ast.getChild(1).getType(), SQLParser.TABLE_DEF);
-    assertEquals(ast.getChild(2).getType(), SQLParser.Regular_Identifier);
-    assertEquals(ast.getChild(3).getType(), SQLParser.Character_String_Literal);
+    System.out.println(ast.toStringTree());
+    assertEquals(SQLParser.CREATE_TABLE, ast.getType());
+    assertEquals(SQLParser.Regular_Identifier, ast.getChild(0).getType());
+    assertEquals(SQLParser.EXTERNAL, ast.getChild(1).getType());
+    assertEquals(SQLParser.TABLE_DEF, ast.getChild(2).getType());
+    assertEquals(SQLParser.USING, ast.getChild(3).getType());
+    assertEquals(SQLParser.Regular_Identifier, ast.getChild(3).getChild(0).getType());
+    assertEquals(SQLParser.LOCATION, ast.getChild(4).getType());
+    assertEquals(SQLParser.Character_String_Literal, ast.getChild(4).getChild(0).getType());
   }
 
   @Test

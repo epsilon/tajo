@@ -176,7 +176,7 @@ public class ColumnStat implements ProtoObject<ColumnStatProto>, Cloneable {
 
   public Object clone() throws CloneNotSupportedException {
     ColumnStat stat = (ColumnStat) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     stat.column = (Column) this.column.clone();
     stat.numDistVals = numDistVals;
     stat.numNulls = numNulls;
@@ -187,14 +187,14 @@ public class ColumnStat implements ProtoObject<ColumnStatProto>, Cloneable {
   }
 
   public String toString() {
-    initFromProto();
+    mergeProtoToLocal();
     Gson gson = new GsonBuilder().setPrettyPrinting().
         excludeFieldsWithoutExposeAnnotation().create();
     return gson.toJson(this);
   }
 
   @Override
-  public void initFromProto() {
+  public void mergeProtoToLocal() {
     ColumnStatProtoOrBuilder p = viaProto ? proto : builder;
     if (this.column == null && p.hasColumn()) {
       this.column = new Column(p.getColumn());

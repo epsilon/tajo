@@ -118,10 +118,10 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable {
 		return fieldsByName.containsKey(colName.toLowerCase());
 	}
 	
-	public void initFromProto() {
+	public void mergeProtoToLocal() {
 		initColumns();
 		for (Column col : fields) {
-		  col.initFromProto();
+		  col.mergeProtoToLocal();
 		}
 	}
 
@@ -176,7 +176,7 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable {
   @Override
   public Object clone() throws CloneNotSupportedException {
     Schema schema = (Schema) super.clone();
-    initFromProto();
+    mergeProtoToLocal();
     schema.viaProto = false;
     schema.builder = SchemaProto.newBuilder();
     schema.fields = fields != null ? new ArrayList<>(fields) : null;
@@ -233,7 +233,7 @@ public class Schema implements ProtoObject<SchemaProto>, Cloneable {
 	}
 	
 	public String toJson() {
-	  initFromProto();
+	  mergeProtoToLocal();
 	  Gson gson = GsonCreator.getInstance();
 	  return gson.toJson(this, Schema.class);
 		

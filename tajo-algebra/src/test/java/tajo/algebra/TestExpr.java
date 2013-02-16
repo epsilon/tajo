@@ -21,10 +21,6 @@ import static junit.framework.Assert.assertFalse;
 import static tajo.algebra.LiteralExpr.LiteralType;
 
 public class TestExpr {
-  @Test
-  public void testEqualsTo() throws Exception {
-
-  }
 
   @Test
   public void testBinaryEquals() {
@@ -129,8 +125,7 @@ public class TestExpr {
     Aggregation aggregation = new Aggregation();
     aggregation.setTargets(new Target[]{
         new Target(new ColumnReferenceExpr("col1"))
-    }
-    );
+    });
 
     aggregation.setChild(selection);
 

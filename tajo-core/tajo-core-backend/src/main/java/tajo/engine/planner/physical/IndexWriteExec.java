@@ -51,7 +51,7 @@ public class IndexWriteExec extends UnaryPhysicalExec {
     Schema keySchema = new Schema();
     Column col;
     for (int i = 0 ; i < plan.getSortSpecs().length; i++) {
-      col = plan.getSortSpecs()[i].getSortKey();
+      col = plan.getSortSpecs()[i].getKey();
       indexKeys[i] = inSchema.getColumnId(col.getQualifiedName());
       keySchema.addColumn(inSchema.getColumn(col.getQualifiedName()));
     }

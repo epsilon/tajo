@@ -18,7 +18,7 @@ public class TestJson {
         .excludeFieldsWithoutExposeAnnotation()
         .setPrettyPrinting()
         .create();
-    col.initFromProto();
+    col.mergeProtoToLocal();
     System.out.println(gson.toJson(col));
 
     Schema schema = new Schema(
@@ -29,7 +29,7 @@ public class TestJson {
         }
     );
 
-    schema.initFromProto();
+    schema.mergeProtoToLocal();
     System.out.println(gson.toJson(schema));
   }
 }

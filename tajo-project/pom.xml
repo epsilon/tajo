@@ -521,7 +521,12 @@
       </dependency>
       <dependency>
         <groupId>kr.ac.korea.dbserver</groupId>
-        <artifactId>tajo-sql</artifactId>
+        <artifactId>tajo-frontend</artifactId>
+        <version>${tajo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>kr.ac.korea.dbserver</groupId>
+        <artifactId>tajo-frontend-sql</artifactId>
         <version>${tajo.version}</version>
       </dependency>
 

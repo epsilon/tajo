@@ -226,7 +226,7 @@ public class FunctionDesc implements ProtoObject<FunctionDescProto>, Cloneable {
   }
   
   @SuppressWarnings("unchecked")
-  private void mergeProtoToLocal() throws InternalException {
+  public void mergeProtoToLocal() {
 	  FunctionDescProtoOrBuilder p = viaProto ? proto : builder;
 	  if (signature == null && p.hasSignature()) {
 		  signature = p.getSignature();
@@ -236,7 +236,7 @@ public class FunctionDesc implements ProtoObject<FunctionDescProto>, Cloneable {
 			  this.funcClass = 
 			      (Class<? extends GeneralFunction>)Class.forName(p.getClassName());
 		  } catch (ClassNotFoundException e) {
-			  throw new InternalException("The function class ("+p.getClassName()+") cannot be loaded");
+			  throw new RuntimeException("The function class ("+p.getClassName()+") cannot be loaded");
 		  }
 	  }
 	  if (funcType == null && p.hasType()) {
@@ -257,18 +257,9 @@ public class FunctionDesc implements ProtoObject<FunctionDescProto>, Cloneable {
   public String toString() {
 	  return getProto().toString();
   }
-
-  @Override
-  public void initFromProto() {
-    try {
-      mergeProtoToLocal();
-    } catch (InternalException e) {
-      e.printStackTrace();
-    }
-  }
   
   public String toJSON() {
-    initFromProto();
+    mergeProtoToLocal();
     Gson gson = GsonCreator.getInstance();
     return gson.toJson(this, FunctionDesc.class);
   }

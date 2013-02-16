@@ -590,10 +590,10 @@ public final class QueryAnalyzer {
     FromTable table;
 
     if (tableAST.getChildCount() > 1) {
-      table = new FromTable(desc,
+      table = new FromTable(desc.getId(), desc.getMeta().getSchema(),
           tableAST.getChild(1).getText());
     } else {
-      table = new FromTable(desc);
+      table = new FromTable(desc.getId(), desc.getMeta().getSchema());
     }
 
     return table;

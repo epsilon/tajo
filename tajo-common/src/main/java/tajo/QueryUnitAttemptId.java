@@ -60,7 +60,7 @@ public class QueryUnitAttemptId implements Comparable<QueryUnitAttemptId>,
     this.finalId = finalId;
     int i = finalId.lastIndexOf(QueryId.SEPARATOR);
     this.queryUnitId = new QueryUnitId(finalId.substring(0, i));
-    this.id = Integer.valueOf(finalId.substring(i+1));
+    this.id = Integer.valueOf(finalId.substring(i + 1));
   }
 
   public int getId() {
@@ -131,7 +131,8 @@ public class QueryUnitAttemptId implements Comparable<QueryUnitAttemptId>,
     return this.getId() - o.getId();
   }
 
-  private void mergeProtoToLocal() {
+  @Override
+  public void mergeProtoToLocal() {
     QueryUnitAttemptIdProtoOrBuilder p = viaProto ? proto : builder;
     if (queryUnitId == null) {
       queryUnitId = new QueryUnitId(p.getQueryUnitId());
@@ -139,11 +140,6 @@ public class QueryUnitAttemptId implements Comparable<QueryUnitAttemptId>,
     if (id == -1) {
       id = p.getId();
     }
-  }
-
-  @Override
-  public void initFromProto() {
-    mergeProtoToLocal();
   }
 
   private void mergeLocalToBuilder() {

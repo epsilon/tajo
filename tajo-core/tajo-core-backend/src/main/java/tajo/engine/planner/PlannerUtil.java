@@ -440,7 +440,7 @@ public class PlannerUtil {
       case SORT:
         SortNode sortNode = (SortNode) node;
         for (SortSpec key : sortNode.getSortKeys()) {
-          collected.add(key.getSortKey());
+          collected.add(key.getKey());
         }
         
         break;
@@ -496,7 +496,7 @@ public class PlannerUtil {
   public static Schema sortSpecsToSchema(SortSpec[] sortSpecs) {
     Schema schema = new Schema();
     for (SortSpec spec : sortSpecs) {
-      schema.addColumn(spec.getSortKey());
+      schema.addColumn(spec.getKey());
     }
 
     return schema;

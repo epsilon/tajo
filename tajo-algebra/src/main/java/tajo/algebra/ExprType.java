@@ -21,6 +21,7 @@ import java.lang.reflect.Type;
 public enum ExprType {
   // relational operators
   Relation(Relation.class),
+  RelationList(RelationList.class),
   TableSubQuery(TableSubQuery.class),
   Except(SetOperation.class),
 	Aggregation(tajo.algebra.Aggregation.class),

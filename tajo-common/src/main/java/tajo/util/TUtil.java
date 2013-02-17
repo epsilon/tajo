@@ -96,6 +96,10 @@ public class TUtil {
     return new HashSet<>();
   }
 
+  public static <T> Set<T> newHashSet(T ...items) {
+    return new HashSet<>(Arrays.asList(items));
+  }
+
   public static <T> List<T> newList() {
     return new ArrayList<>();
   }

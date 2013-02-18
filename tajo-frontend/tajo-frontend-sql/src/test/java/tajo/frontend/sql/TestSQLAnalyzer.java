@@ -60,13 +60,13 @@ public class TestSQLAnalyzer {
     Projection projection = (Projection) expr;
     assertEquals(ExprType.Selection, projection.getChild().getType());
     Selection selection = (Selection) projection.getChild();
-    assertEquals(ExprType.Join, selection.getChild().getType());
-    Join join = (Join) selection.getChild();
-    assertEquals(ExprType.Relation, join.getLeft().getType());
-    Relation outer = (Relation) join.getLeft();
+    assertEquals(ExprType.RelationList, selection.getChild().getType());
+    RelationList join = (RelationList) selection.getChild();
+    assertEquals(ExprType.Relation, join.getRelations()[0].getType());
+    Relation outer = (Relation) join.getRelations()[0];
     assertEquals("p", outer.getAlias());
-    assertEquals(ExprType.Relation, join.getRight().getType());
-    Relation inner = (Relation) join.getRight();
+    assertEquals(ExprType.Relation, join.getRelations()[1].getType());
+    Relation inner = (Relation) join.getRelations()[1];
     assertEquals("s", inner.getAlias());
   }
 
@@ -189,11 +189,13 @@ public class TestSQLAnalyzer {
           "natural left outer join table10 " +
           "natural right outer join table11 " +
           "natural full outer join table12 ", // 9 - all possible join clauses*/
-      "select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment, ps_supplycost " + // 10
+      "select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment, ps_supplycost " +
           "from region join nation on n_regionkey = r_regionkey and r_name = 'EUROPE' " +
           "join supplier on s_nationekey = n_nationkey " +
           "join partsupp on s_suppkey = ps_ps_suppkey " +
-          "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15"
+          "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15", // 10
+      "select * from a cross join b, c, d, e", // 11
+      "select * from x, y, (select * from a, b, c) as ss" // 12
 
   };
 
@@ -343,6 +345,39 @@ public class TestSQLAnalyzer {
     assertEquals("s", student.getAlias());
     assertTrue(join.hasQual());
     assertEquals(ExprType.Equals, join.getQual().getType());
+  }
+
+  @Test
+  public final void testCombinationJoin() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[11]);
+
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.RelationList,projection.getChild().getType());
+    RelationList list = (RelationList) projection.getChild();
+    assertEquals(4, list.getRelations().length);
+    assertEquals(ExprType.Join, list.getRelations()[0].getType());
+    Join join = (Join) list.getRelations()[0];
+    assertEquals(JoinType.CROSS_JOIN, join.getJoinType());
+    assertEquals(ExprType.Relation, list.getRelations()[1].getType());
+    assertEquals(ExprType.Relation, list.getRelations()[2].getType());
+    assertEquals(ExprType.Relation, list.getRelations()[3].getType());
+  }
+
+  @Test
+  public final void testSubQueryJoin() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[12]);
+
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.RelationList,projection.getChild().getType());
+    RelationList list = (RelationList) projection.getChild();
+    assertEquals(3, list.getRelations().length);
+    assertEquals(ExprType.Relation, list.getRelations()[0].getType());
+    assertEquals(ExprType.Relation, list.getRelations()[1].getType());
+    assertEquals(ExprType.TableSubQuery, list.getRelations()[2].getType());
+    TableSubQuery subQuery = (TableSubQuery) list.getRelations()[2];
+    assertEquals("ss", subQuery.getName());
   }
 
   private final String [] setClauses = {

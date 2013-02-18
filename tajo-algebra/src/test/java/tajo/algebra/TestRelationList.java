@@ -12,10 +12,25 @@
  * limitations under the License.
  */
 
-package tajo.planner;
+package tajo.algebra;
 
-public class OptimizationException extends Exception {
-  public OptimizationException(String message) {
-    super(message);
+import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
+
+public class TestRelationList {
+  @Test
+  public void testEqualsTo() {
+    Relation rel1 = new Relation("rel1");
+    Relation rel2 = new Relation("rel2");
+
+    RelationList relList1 = new RelationList(new Relation[]{rel1, rel2});
+
+    Relation rel3 = new Relation("rel2");
+    Relation rel4 = new Relation("rel1");
+
+    RelationList relList2 = new RelationList(new Relation[]{rel3, rel4});
+
+    assertTrue(relList1.equalsTo(relList2));
   }
 }

@@ -16,6 +16,8 @@ package tajo.algebra;
 
 import tajo.util.TUtil;
 
+import java.util.Arrays;
+
 public class Join extends BinaryOperator {
   private JoinType join_type;
   private Expr join_qual;
@@ -74,5 +76,15 @@ public class Join extends BinaryOperator {
   @Override
   public String toJson() {
     return JsonHelper.toJson(this);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = getType().hashCode();
+    result = 31 * result + join_type.hashCode();
+    result = 31 * result + (join_qual != null ? join_qual.hashCode() : 0);
+    result = 31 * result + (join_columns != null ? Arrays.hashCode(join_columns) : 0);
+    result = 31 * result + (natural ? 1 : 0);
+    return result;
   }
 }

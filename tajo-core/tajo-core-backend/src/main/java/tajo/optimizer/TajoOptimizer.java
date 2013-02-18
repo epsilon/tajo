@@ -12,14 +12,20 @@
  * limitations under the License.
  */
 
-package tajo.planner;
+package tajo.optimizer;
 
 import tajo.algebra.Expr;
+import tajo.catalog.CatalogService;
 import tajo.engine.planner.logical.LogicalNode;
 
 import java.util.PriorityQueue;
 
-public class TajoOptimizer extends AbstractOptimizer{
+public class TajoOptimizer extends AbstractOptimizer {
+  private CatalogService catalog;
+
+  public TajoOptimizer(CatalogService catalog) {
+    this.catalog = catalog;
+  }
 
   @Override
   public LogicalNode optimize(Expr algebra) throws OptimizationException {

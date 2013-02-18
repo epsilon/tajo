@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package tajo.planner;
+package tajo.optimizer;
 
 public class OptContext {
 }

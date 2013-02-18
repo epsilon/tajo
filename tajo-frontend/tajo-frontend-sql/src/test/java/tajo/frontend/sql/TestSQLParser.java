@@ -176,11 +176,13 @@ public class TestSQLParser {
         "natural right outer join table11 " +
         "natural full outer join table12 ",
          // 7 - all possible join clauses*/
-    "select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment, ps_supplycost " + // 8
+    "select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment, ps_supplycost " +
       "from region join nation on n_regionkey = r_regionkey and r_name = 'EUROPE' " +
       "join supplier on s_nationekey = n_nationkey " +
       "join partsupp on s_suppkey = ps_ps_suppkey " +
-      "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15"
+      "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15", // 8
+    "select * from a cross join b, c, d, e", // 9
+    "select * from x, y, (select * from a, b, c WHERE something) as ss where somethingelse" // 10
   };
   
   @Test
@@ -366,6 +368,36 @@ public class TestSQLParser {
     assertEquals(SQLParser.OUTER, join.getChild(1).getType());
     assertEquals(SQLParser.FULL, join.getChild(1).getChild(0).getType());
     assertEquals("table12", join.getChild(2).getChild(0).getText());
+  }
+
+  @Test
+  public void testCombinationJoin() {
+    Tree tree = parseQuery(joinQueries[9]);
+
+    assertEquals(tree.getType(), SQLParser.SELECT);
+    assertEquals(SQLParser.FROM, tree.getChild(0).getType());
+    CommonTree fromAST = (CommonTree) tree.getChild(0);
+
+    assertEquals(5, fromAST.getChildCount());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(0).getType());
+    assertEquals(SQLParser.JOIN, fromAST.getChild(1).getType());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(2).getType());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(3).getType());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(4).getType());
+  }
+
+  @Test
+  public void testSubQueryJoin() {
+    Tree tree = parseQuery(joinQueries[10]);
+
+    assertEquals(tree.getType(), SQLParser.SELECT);
+    assertEquals(SQLParser.FROM, tree.getChild(0).getType());
+    CommonTree fromAST = (CommonTree) tree.getChild(0);
+
+    assertEquals(3, fromAST.getChildCount());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(0).getType());
+    assertEquals(SQLParser.TABLE, fromAST.getChild(1).getType());
+    assertEquals(SQLParser.SUBQUERY, fromAST.getChild(2).getType());
   }
   
   private final static String setQueries[] = {

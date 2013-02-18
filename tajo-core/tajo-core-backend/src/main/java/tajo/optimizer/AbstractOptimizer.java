@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package tajo.planner;
+package tajo.optimizer;
 
 import tajo.algebra.Expr;
 import tajo.engine.planner.logical.LogicalNode;

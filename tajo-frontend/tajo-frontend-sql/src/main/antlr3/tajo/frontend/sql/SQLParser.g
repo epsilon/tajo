@@ -264,13 +264,6 @@ joined_table
   | union_join )+
   ;
 
-joined_table_prim
-  : cross_join
-  | qualified_join
-  | natural_join
-  | union_join
-  ;
-
 cross_join
   : CROSS JOIN r=table_primary -> ^(JOIN CROSS $r)
   ;

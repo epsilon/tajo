@@ -12,10 +12,7 @@ import tajo.algebra.Aggregation.GroupType;
 import tajo.algebra.LiteralExpr.LiteralType;
 import tajo.algebra.Sort.SortSpec;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static tajo.algebra.CreateTable.ColumnDefinition;
 
@@ -554,8 +551,8 @@ public class SQLAnalyzer {
    * @param ast
    */
   private Expr parseFromClause(ParsingContext context, final CommonTree ast) throws SQLSyntaxError {
-    Expr previous = null;
     CommonTree node;
+    Stack<Expr> list = new Stack<>();
     for (int i = 0; i < ast.getChildCount(); i++) {
       node = (CommonTree) ast.getChild(i);
 
@@ -564,26 +561,24 @@ public class SQLAnalyzer {
         case SQLParser.TABLE:
           // table (AS ID)?
           // 0 - a table name, 1 - table alias
-          if (previous != null) {
-            Expr inner = parseTable(node);
-            Join newJoin = new Join(JoinType.INNER);
-            newJoin.setLeft(previous);
-            newJoin.setRight(inner);
-            previous = newJoin;
+          if (list.empty()) {
+            list.push(parseTable(node));
           } else {
-            previous = parseTable(node);
+            Expr newTable = parseTable(node);
+            list.add(newTable);
           }
           break;
         case SQLParser.JOIN:
           Join newJoin = parseExplicitJoinClause(context, node);
-          newJoin.setLeft(previous);
-          previous = newJoin;
+          Expr left = list.pop();
+          newJoin.setLeft(left);
+          list.push(newJoin);
           break;
 
         case SQLParser.SUBQUERY:
           Expr nestedAlgebra = parseSelectStatement(context, node.getChild(0));
           String alias = node.getChild(1).getText();
-          previous = new TableSubQuery(alias, nestedAlgebra);
+          list.add(new TableSubQuery(alias, nestedAlgebra));
           break;
 
         default:
@@ -591,7 +586,11 @@ public class SQLAnalyzer {
       } // switch
     } // for each derievedTable
 
-    return previous;
+    if (list.size() == 1) {
+      return list.pop();
+    } else {
+      return new RelationList(list.toArray(new Expr[list.size()]));
+    }
   }
 
   private Relation parseTable(final CommonTree tableAST) {

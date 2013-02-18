@@ -762,7 +762,7 @@ public class SQLAnalyzer {
    * @param tree
    * @return
    */
-  public CaseWhenExpr parseCaseWhen(ParsingContext context, final Tree tree) throws SQLSyntaxError {
+  private CaseWhenExpr parseCaseWhen(ParsingContext context, final Tree tree) throws SQLSyntaxError {
     int idx = 0;
 
     CaseWhenExpr caseEval = new CaseWhenExpr();
@@ -812,7 +812,7 @@ public class SQLAnalyzer {
     return new LikeExpr(not, field, pattern);
   }
 
-  public Expr createExpression(final ParsingContext context, final Tree ast) throws SQLSyntaxError {
+  private Expr createExpression(final ParsingContext context, final Tree ast) throws SQLSyntaxError {
     switch(ast.getType()) {
 
       // constants

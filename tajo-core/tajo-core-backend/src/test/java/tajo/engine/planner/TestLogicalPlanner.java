@@ -28,6 +28,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
+import tajo.algebra.JoinType;
 import tajo.benchmark.TPCH;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;

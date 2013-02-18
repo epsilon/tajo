@@ -22,6 +22,8 @@ package tajo.engine.planner.logical;
 
 import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
+import tajo.algebra.Relation;
+import tajo.catalog.Schema;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock;
@@ -33,20 +35,28 @@ public class ScanNode extends LogicalNode {
 	@Expose private FromTable table;
 	@Expose private EvalNode qual;
 	@Expose private QueryBlock.Target[] targets;
-	@Expose private boolean local;
+	@Expose private boolean local = false;
   @Expose private boolean broadcast;
 	
 	public ScanNode() {
 		super();
-		local = false;
 	}
+
+  public ScanNode(Relation relation, Schema schema) {
+    super(ExprType.SCAN);
+    table = new FromTable(relation.getName(), schema);
+    if (relation.hasAlias()) {
+      table.setAlias(relation.getAlias());
+    }
+    setInSchema(schema);
+    setOutSchema(schema);
+  }
   
 	public ScanNode(FromTable table) {
 		super(ExprType.SCAN);
 		this.table = table;
 		this.setInSchema(table.getSchema());
 		this.setOutSchema(table.getSchema());
-		local = false;
 	}
 	
 	public String getTableId() {

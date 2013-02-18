@@ -15,20 +15,24 @@
 package tajo.optimizer;
 
 import org.apache.hadoop.fs.Path;
-import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import tajo.TajoTestingCluster;
+import tajo.algebra.Expr;
 import tajo.benchmark.TPCH;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos;
+import tajo.frontend.sql.SQLAnalyzer;
+import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
 
 public class TestTajoOptimizer {
-  private TajoTestingCluster util;
-  private TPCH tpch;
-  private CatalogService catalog;
+  private static TajoTestingCluster util;
+  private static TPCH tpch;
+  private static CatalogService catalog;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeClass
+  public static void setup() throws Exception {
     util = new TajoTestingCluster();
     util.startCatalogCluster();
     catalog = util.getMiniCatalogCluster().getCatalog();
@@ -38,7 +42,7 @@ public class TestTajoOptimizer {
 
     // TPC-H Schema for Complex Queries
     String [] tpchTables = {
-        "part", "supplier", "partsupp", "nation", "region"
+        "part", "supplier", "partsupp", "nation", "region", "lineitem"
     };
     tpch = new TPCH();
     tpch.loadSchemas();
@@ -50,8 +54,20 @@ public class TestTajoOptimizer {
     }
   }
 
-  public void testJoinEnumeration() {
-     TajoOptimizer optimizer = new TajoOptimizer();
+  @Test
+  public void test() throws SQLSyntaxError, OptimizationException {
 
+  }
+
+  @Test
+  public void testVerify() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse("select * from part,supplier,partsupp, nation, region, lineitem");
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+    optimizer.verify(expr);
+
+    optimizer.transform(expr);
   }
 }

@@ -25,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
+import tajo.algebra.JoinType;
 import tajo.benchmark.TPCH;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos.DataType;
@@ -39,7 +40,6 @@ import tajo.engine.eval.TestEvalTree.TestSum;
 import tajo.engine.parser.QueryBlock.GroupElement;
 import tajo.engine.parser.QueryBlock.GroupType;
 import tajo.engine.parser.QueryBlock.JoinClause;
-import tajo.engine.planner.JoinType;
 import tajo.engine.query.exception.InvalidQueryException;
 
 import java.util.Iterator;

@@ -58,6 +58,24 @@ public abstract class Expr implements JsonSerializable {
     return JsonHelper.toJson(this);
   }
 
+  /**
+   * This method provides a visiting way in the post order.
+   *
+   * @param visitor
+   */
+  public void accept(ExprVisitor visitor) {
+    if (this instanceof UnaryOperator) {
+      UnaryOperator unary = (UnaryOperator) this;
+      unary.getChild().accept(visitor);
+    } else if (this instanceof  BinaryOperator) {
+      BinaryOperator bin = (BinaryOperator) this;
+      bin.getLeft().accept(visitor);
+      bin.getRight().accept(visitor);
+    }
+
+    visitor.visit(this);
+  }
+
   static class JsonSerDer
       implements JsonSerializer<Expr>, JsonDeserializer<Expr> {
 

@@ -24,10 +24,10 @@
 package tajo.engine.planner.logical;
 
 import com.google.gson.annotations.Expose;
+import tajo.algebra.JoinType;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock;
-import tajo.engine.planner.JoinType;
 
 /**
  * @author Hyunsik Choi

@@ -24,14 +24,13 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
+import tajo.algebra.JoinType;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
 import tajo.catalog.SortSpec;
-import tajo.catalog.TableDesc;
 import tajo.catalog.proto.CatalogProtos;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
-import tajo.engine.planner.JoinType;
 import tajo.engine.planner.PlanningContext;
 import tajo.util.TUtil;
 

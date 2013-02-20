@@ -41,8 +41,8 @@ public class TajoOptimizer extends AbstractOptimizer {
     for (LogicalNode joinOrder : joinEnumerated) {
       LogicalNode step1 = pushdownSelection(joinOrder);
       LogicalNode step2 = pushdownProjection(step1);
-      CostedPlan costedPlan = computeCost(step2);
-      heap.add(costedPlan);
+//      CostedPlan costedPlan = computeCost(step2);
+//      heap.add(costedPlan);
     }
 
     return heap.poll().plan;
@@ -64,6 +64,10 @@ public class TajoOptimizer extends AbstractOptimizer {
         createImplicitJoinPlan(relationList);
         break;
 
+      case Selection:
+        Selection selection = (Selection) expr;
+        break;
+
       case Join:
         Join join = (Join) expr;
         break;
@@ -74,6 +78,17 @@ public class TajoOptimizer extends AbstractOptimizer {
         TableDesc desc = catalog.getTableDesc(relation.getName());
         ScanNode scanNode = new ScanNode(relation, desc.getMeta().getSchema());
         return scanNode;
+
+      // the below will has separate query blocks
+      case ScalarSubQuery:
+
+      case TableSubQuery:
+
+      case Union:
+
+      case Intersect:
+
+      case Except:
     }
 
     return null;
@@ -83,77 +98,178 @@ public class TajoOptimizer extends AbstractOptimizer {
     Set<Expr> relSet = TUtil.newHashSet(expr.getRelations());
     Set<Expr> nextRemain;
     Set<JoinNode> enumerated = new HashSet<>();
-    for (Expr rel : relSet) {
-      nextRemain = new HashSet<>(relSet);
-      nextRemain.remove(rel);
-      enumerated.addAll(enumerateJoin(rel, nextRemain));
+    JoinNode bestPlan = null;
+    Collection<JoinNode> candidate;
+    int i = 1;
+    JoinEnumerator enuemrator = new RightDeepEnumerator();
+    nextRemain = new HashSet<>(relSet);
+    candidate = enuemrator.enumerate(nextRemain);
+    for (JoinNode joinNode : candidate) {
+      System.out.print((i++) + " : ");
+      printJoinOrder(joinNode);
+      System.out.print("(cost: " + computeCost(joinNode) + ")");
+      System.out.println();
     }
+    bestPlan = (JoinNode) findBestPlan(candidate, bestPlan);
 
-    int i = 0;
-    for (JoinNode joinNode : enumerated) {
-      System.out.println((i++) + " : " + printJoinOrder(joinNode));
-    }
+    System.out.println("=======================================");
+    System.out.print("best plan: ");
+    printJoinOrder(bestPlan);
+    System.out.print("(cost: " + computeCost(bestPlan) + ")");
 
     return null;
   }
 
-  private String printJoinOrder(JoinNode joinNode) {
-   List<String> relList = new ArrayList<>();
-    traverseJoinNode(joinNode, relList);
-    return relList.toString();
+  private interface JoinEnumerator {
+    Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException;
   }
 
-  private void traverseJoinNode(LogicalNode node, List<String> result) {
-    if (node.getType() == ExprType.JOIN) {
-      JoinNode join = (JoinNode) node;
-      traverseJoinNode(join.getOuterNode(), result);
-      traverseJoinNode(join.getInnerNode(), result);
-    } else if (node.getType() == ExprType.SCAN) {
-      ScanNode scan = (ScanNode) node;
-      result.add(scan.getTableId());
+  @SuppressWarnings("unused")
+  private class LeftDeepEnumerator implements JoinEnumerator {
+
+    @Override
+    public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
+      Set<JoinNode> enumerated = new HashSet<>();
+      Set<Expr> nextRemain;
+      for (Expr rel : exprs) {
+        nextRemain = new HashSet<>(exprs);
+        nextRemain.remove(rel);
+        enumerated.addAll(enumerateLeftDeepJoin(nextRemain, rel));
+      }
+
+      return enumerated;
+    }
+
+    private Collection<JoinNode> enumerateLeftDeepJoin(Set<Expr> remain, Expr rel)
+        throws OptimizationException {
+      List<JoinNode> enumerated = new ArrayList<>();
+      if (remain.size() == 1) {
+        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
+            transform(rel), transform(remain.iterator().next())));
+      } else {
+        Set<Expr> nextRemain;
+        for (Expr next : remain) {
+          nextRemain = new HashSet<>(remain);
+          nextRemain.remove(next);
+          enumerated.addAll(createLeftDeepJoin(enumerateLeftDeepJoin(nextRemain, next), rel));
+        }
+      }
+
+      return enumerated;
+    }
+
+    private List<JoinNode> createLeftDeepJoin(Collection<JoinNode> enumerated, Expr inner) throws OptimizationException {
+      List<JoinNode> joins = new ArrayList<>();
+      for (JoinNode join : enumerated) {
+        joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
+      }
+      return joins;
     }
   }
 
-  private List<JoinNode> enumerateJoin(Expr rel, Set<Expr> remain) throws OptimizationException {
-    List<JoinNode> enumerated = new ArrayList<>();
-    if (remain.size() == 1) {
-      enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
-          transform(rel), transform(remain.iterator().next())));
-    } else {
+  private class RightDeepEnumerator implements JoinEnumerator {
+
+    @Override
+    public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
+      Set<JoinNode> enumerated = new HashSet<>();
       Set<Expr> nextRemain;
-      for (Expr next : remain) {
-        nextRemain = new HashSet<>(remain);
-        nextRemain.remove(next);
-        enumerated.addAll(createJoinNode(rel, enumerateJoin(next, nextRemain)));
-        enumerated.addAll(createJoinNode(enumerateJoin(next, nextRemain), rel));
+      for (Expr rel : exprs) {
+        nextRemain = new HashSet<>(exprs);
+        nextRemain.remove(rel);
+        enumerated.addAll(enumerateRightDeepJoin(rel, nextRemain));
+      }
+
+      return enumerated;
+    }
+
+    private Collection<JoinNode> enumerateRightDeepJoin(Expr rel, Set<Expr> remain)
+        throws OptimizationException {
+      List<JoinNode> enumerated = new ArrayList<>();
+      if (remain.size() == 1) {
+        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
+            transform(rel), transform(remain.iterator().next())));
+      } else {
+        Set<Expr> nextRemain;
+        for (Expr next : remain) {
+          nextRemain = new HashSet<>(remain);
+          nextRemain.remove(next);
+          enumerated.addAll(createRightDeepJoin(rel, enumerateRightDeepJoin(next, nextRemain)));
+        }
+      }
+
+      return enumerated;
+    }
+
+    private List<JoinNode> createRightDeepJoin(Expr outer, Collection<JoinNode> enumerated) throws OptimizationException {
+      List<JoinNode> joins = new ArrayList<>();
+      for (JoinNode join : enumerated) {
+        joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
+      }
+      return joins;
+    }
+  }
+
+  private LogicalNode findBestPlan(Collection<JoinNode> candidates, JoinNode bestCandidate) {
+    LogicalNode plan;
+    JoinNode bestPlan = bestCandidate;
+    for (JoinNode candidate : candidates) {
+      if (bestPlan == null) {
+        bestPlan = candidate;
+        continue;
+      }
+      plan = candidate;
+      //plan = pushdownSelection(candidate);
+      //plan = pushdownProjection(plan);
+      if (computeCost(plan) < computeCost(bestPlan)) {
+        bestPlan = (JoinNode) plan;
       }
     }
 
-    return enumerated;
+    return bestPlan;
   }
 
-  private List<JoinNode> createJoinNode(Expr outer, List<JoinNode> enumerated) throws OptimizationException {
-    List<JoinNode> joins = new ArrayList<>();
-    for (JoinNode join : enumerated) {
-      joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
-    }
-    return joins;
+  private void printJoinOrder(JoinNode joinNode) {
+    traverseJoinNode(joinNode);
   }
 
-  private List<JoinNode> createJoinNode(List<JoinNode> enumerated, Expr inner) throws OptimizationException {
-    List<JoinNode> joins = new ArrayList<>();
-    for (JoinNode join : enumerated) {
-      joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
+  private void traverseJoinNode(LogicalNode node) {
+    if (node.getType() == ExprType.JOIN) {
+      JoinNode join = (JoinNode) node;
+      System.out.print("(");
+      traverseJoinNode(join.getOuterNode());
+      System.out.print(",");
+      traverseJoinNode(join.getInnerNode());
+      System.out.print(")");
+    } else if (node.getType() == ExprType.SCAN) {
+      ScanNode scan = (ScanNode) node;
+      System.out.print(scan.getTableId());
     }
-    return joins;
   }
 
   private LogicalNode createExplicitJoinPlan(Join join) {
     return null;
   }
 
-  public CostedPlan computeCost(LogicalNode optimized) {
-    return null;
+  public double computeCost(LogicalNode optimized) {
+    return computeCostRecursive(optimized);
+  }
+
+  private double computeCostRecursive(LogicalNode plan) {
+    switch (plan.getType()) {
+      case JOIN:
+        JoinNode join = (JoinNode) plan;
+        double leftCost = computeCostRecursive(join.getOuterNode());
+        double rightCost = computeCostRecursive(join.getInnerNode());
+        return (1.5 * leftCost) + (rightCost * 1.5);
+
+      case SCAN:
+        ScanNode scanNode = (ScanNode) plan;
+        TableDesc desc = catalog.getTableDesc(scanNode.getTableId());
+        return desc.getMeta().getStat().getNumBytes();
+
+      default:
+        return 0;
+    }
   }
 
   public class CostedPlan implements Comparable<CostedPlan> {

@@ -22,6 +22,7 @@ import tajo.algebra.Expr;
 import tajo.benchmark.TPCH;
 import tajo.catalog.*;
 import tajo.catalog.proto.CatalogProtos;
+import tajo.catalog.statistics.TableStat;
 import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
@@ -44,12 +45,19 @@ public class TestTajoOptimizer {
     String [] tpchTables = {
         "part", "supplier", "partsupp", "nation", "region", "lineitem"
     };
+    int [] tableVolumns = {
+        100, 200, 50, 5, 5, 800
+    };
     tpch = new TPCH();
     tpch.loadSchemas();
     tpch.loadOutSchema();
-    for (String table : tpchTables) {
-      TableMeta m = TCatUtil.newTableMeta(tpch.getSchema(table), CatalogProtos.StoreType.CSV);
-      TableDesc d = TCatUtil.newTableDesc(table, m, new Path("file:///"));
+
+    for (int i = 0; i < tpchTables.length; i++) {
+      TableMeta m = TCatUtil.newTableMeta(tpch.getSchema(tpchTables[i]), CatalogProtos.StoreType.CSV);
+      TableStat stat = new TableStat();
+      stat.setNumBytes(tableVolumns[i]);
+      m.setStat(stat);
+      TableDesc d = TCatUtil.newTableDesc(tpchTables[i], m, new Path("file:///"));
       catalog.addTable(d);
     }
   }
@@ -62,11 +70,10 @@ public class TestTajoOptimizer {
   @Test
   public void testVerify() throws SQLSyntaxError, OptimizationException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
-    Expr expr = sqlAnalyzer.parse("select * from part,supplier,partsupp, nation, region, lineitem");
+    Expr expr = sqlAnalyzer.parse("select * from part, supplier, partsupp, nation, region, lineitem");
     System.out.println(expr);
 
     TajoOptimizer optimizer = new TajoOptimizer(catalog);
-    optimizer.verify(expr);
 
     optimizer.transform(expr);
   }

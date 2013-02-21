@@ -1,4 +1,4 @@
-package tajo.master.dqep;
+package tajo.optimizer;
 
 import tajo.engine.planner.logical.LogicalNode;
 

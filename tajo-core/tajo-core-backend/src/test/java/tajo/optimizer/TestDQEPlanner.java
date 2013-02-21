@@ -1,4 +1,4 @@
-package tajo.master.dqep;
+package tajo.optimizer;
 
 import org.apache.hadoop.fs.Path;
 import org.junit.After;

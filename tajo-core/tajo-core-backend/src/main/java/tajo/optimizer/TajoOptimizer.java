@@ -260,7 +260,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         JoinNode join = (JoinNode) plan;
         double leftCost = computeCostRecursive(join.getOuterNode());
         double rightCost = computeCostRecursive(join.getInnerNode());
-        return (1.5 * leftCost) + (rightCost * 1.5);
+        return rightCost + (0.5 * leftCost) + (rightCost * 0.5);
 
       case SCAN:
         ScanNode scanNode = (ScanNode) plan;

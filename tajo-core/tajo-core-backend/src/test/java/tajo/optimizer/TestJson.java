@@ -1,4 +1,4 @@
-package tajo.master.dqep;
+package tajo.optimizer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -1,4 +1,4 @@
-package tajo.master.dqep;
+package tajo.optimizer;
 
 /**
  * A physical execution plan which contains logical operator, data flow, and data channel.

@@ -33,14 +33,14 @@ Why Tajo?
   We achieve it with various query evaluation strategies, query optimization,
   high throughput engine, and and efficient I/O.
 
-  * <<In-situ Processing>>
+  * <<In-situ processing>>
 
   Hadoop Distributed File System (HDFS) has played a role of the centralized data storage for
   data intensive computing. Collected log data and data streams are
   usually stored into HDFS. Tajo provides a scalable and low-latency means to processes
   them on location without ETL and additional data loading.
 
-  * <<Fault tolerant>>
+  * <<Fault tolerance>>
 
   Long-running queries are also required to process big data.
   Tajo supports the faults tolerance to avoid a complete query restart

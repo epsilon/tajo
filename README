@@ -1,8 +1,7 @@
 Tajo is a relational and distributed data warehouse system for Hadoop.
 Tajo is designed for low-latency and scalable ad-hoc queries, online aggregation
 and ETL on large-data sets by leveraging advanced database techniques.
-It supports SQL standards. Tajo is inspired by Dryad, MapReduce, Dremel, Scope,
-and parallel databases. It has its own query engine which allows direct
+It supports SQL standards. It has its own query engine which allows direct
 control of distributed execution and data flow. As a result, Tajo has
 a variety of query evaluation strategies and more optimization opportunities.
 In addition, Tajo will have a native columnar execution and and its optimizer.
@@ -20,10 +19,10 @@ License
 
 Documents
 =========
-* Getting Started (http://hyunsik.github.com/tajo/getting_started.html)
-* Build Instruction (http://hyunsik.github.com/tajo/build.html)
-* Query Language (http://hyunsik.github.com/tajo/query_language.html)
-* Configuration Guide (http://hyunsik.github.com/tajo/configuration.html)
+* Getting Started (http://tajo-project.github.com/tajo/getting_started.html)
+* Build Instruction (http://tajo-project.github.com/tajo/build.html)
+* Query Language (http://tajo-project.github.com/tajo/query_language.html)
+* Configuration Guide (http://tajo-project.github.com/tajo/configuration.html)
 
 Presentations and Papers
 ========================

@@ -10,8 +10,7 @@ What is Tajo?
 	Tajo is a relational and distributed data warehouse system for Hadoop.
 	Tajo is designed for low-latency and scalable ad-hoc queries, online aggregation
 	and ETL on large-data sets by leveraging advanced database techniques.
-	It supports SQL standards. Tajo is inspired by Dryad, MapReduce, Dremel, Scope,
-	and parallel databases. It has its own query engine which allows direct
+	It supports SQL standards. It has its own query engine which allows direct
 	control of distributed execution and data flow. As a result, Tajo has
 	a variety of query evaluation strategies and more optimization opportunities.
 	In addition, Tajo will have a native columnar execution and and its optimizer.
@@ -19,32 +18,33 @@ What is Tajo?
 
 Why Tajo?
 
-* Scalability
+  * <<Scalability>>
 
-  Since Tajo is designed for ad-hoc queries on large-scale data, the scalability is the most
-  important objective of Tajo.
+  Tajo uses Hadoop Distributed File System (HDFS) as a primary storage layer.
+  Tajo incorporates the advantages of MapReduce and shared-nothing parallel databases
+  to yield the scalability.
 
-* Low latency
+  * <<Low latency>>
 
-  In some cases, a quick picture rather exact results is enough to analyze data. In such cases,
-  low-latency
+  We have two goals for low-latency queries.
+  The first goal is to allow users to get estimates of an aggregate query in an online fashion
+  as soon as the query is submitted. This is feasible if a user wants a quick picture
+  rather exact results.The second goal is efficient query processing.
+  We achieve it with various query evaluation strategies, query optimization,
+  high throughput engine, and and efficient I/O.
 
-  Aggregation queries
-  usually provide a big picture on big data. The current implementation is certainly faster
-  2-3 times than existing solutions (e.g., Hive) on the top of MapReduce.
-  However, the current implementation supports online aggregation, and streaming of intermediate/result data.
+  * <<In-situ Processing>>
 
-* In-situ Processing
-
-  Hadoop Distributed File System (HDFS) has played a role of centralized data storage for
+  Hadoop Distributed File System (HDFS) has played a role of the centralized data storage for
   data intensive computing. Collected log data and data streams are
   usually stored into HDFS. Tajo provides a scalable and low-latency means to processes
   them on location without ETL and additional data loading.
 
-* Fault tolerant
+  * <<Fault tolerant>>
 
-  Tajo also provides long-running queries. Long-running queries requires faults tolerance to avoid
-  a complete query restart in the case that the query fails.
+  Long-running queries are also required to process big data.
+  Tajo supports the faults tolerance to avoid a complete query restart
+  in the case that the query fails.
 
 Documentation
 
@@ -58,7 +58,7 @@ Documentation
 
 Presentations
 
-  * {{{http://dbserver.korea.ac.kr/~hyunsik/files/tajo_intro.pdf}Introduction to Tajo}}
+  * <<[2013-02-24]>> {{{http://dbserver.korea.ac.kr/~hyunsik/files/tajo_intro.pdf}Introduction to Tajo}}
 
 News
 

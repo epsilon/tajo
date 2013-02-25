@@ -48,6 +48,10 @@ public class TajoOptimizer extends AbstractOptimizer {
     return heap.poll().plan;
   }
 
+  private class PlanningContext2 {
+
+  }
+
   public LogicalNode transform(Expr expr) throws OptimizationException {
     LogicalNode child;
     LogicalNode left;
@@ -97,12 +101,12 @@ public class TajoOptimizer extends AbstractOptimizer {
   private LogicalNode createImplicitJoinPlan(RelationList expr) throws OptimizationException {
     Set<Expr> relSet = TUtil.newHashSet(expr.getRelations());
     Set<Expr> nextRemain;
-    Set<JoinNode> enumerated = new HashSet<>();
+    Set<JoinNode> enumerated = new HashSet<JoinNode>();
     JoinNode bestPlan = null;
     Collection<JoinNode> candidate;
     int i = 1;
     JoinEnumerator enuemrator = new RightDeepEnumerator();
-    nextRemain = new HashSet<>(relSet);
+    nextRemain = new HashSet<Expr>(relSet);
     candidate = enuemrator.enumerate(nextRemain);
     for (JoinNode joinNode : candidate) {
       System.out.print((i++) + " : ");
@@ -129,10 +133,10 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     @Override
     public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
-      Set<JoinNode> enumerated = new HashSet<>();
+      Set<JoinNode> enumerated = new HashSet<JoinNode>();
       Set<Expr> nextRemain;
       for (Expr rel : exprs) {
-        nextRemain = new HashSet<>(exprs);
+        nextRemain = new HashSet<Expr>(exprs);
         nextRemain.remove(rel);
         enumerated.addAll(enumerateLeftDeepJoin(nextRemain, rel));
       }
@@ -142,14 +146,14 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     private Collection<JoinNode> enumerateLeftDeepJoin(Set<Expr> remain, Expr rel)
         throws OptimizationException {
-      List<JoinNode> enumerated = new ArrayList<>();
+      List<JoinNode> enumerated = new ArrayList<JoinNode>();
       if (remain.size() == 1) {
         enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
             transform(rel), transform(remain.iterator().next())));
       } else {
         Set<Expr> nextRemain;
         for (Expr next : remain) {
-          nextRemain = new HashSet<>(remain);
+          nextRemain = new HashSet<Expr>(remain);
           nextRemain.remove(next);
           enumerated.addAll(createLeftDeepJoin(enumerateLeftDeepJoin(nextRemain, next), rel));
         }
@@ -159,7 +163,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
 
     private List<JoinNode> createLeftDeepJoin(Collection<JoinNode> enumerated, Expr inner) throws OptimizationException {
-      List<JoinNode> joins = new ArrayList<>();
+      List<JoinNode> joins = new ArrayList<JoinNode>();
       for (JoinNode join : enumerated) {
         joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
       }
@@ -171,10 +175,10 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     @Override
     public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
-      Set<JoinNode> enumerated = new HashSet<>();
+      Set<JoinNode> enumerated = new HashSet<JoinNode>();
       Set<Expr> nextRemain;
       for (Expr rel : exprs) {
-        nextRemain = new HashSet<>(exprs);
+        nextRemain = new HashSet<Expr>(exprs);
         nextRemain.remove(rel);
         enumerated.addAll(enumerateRightDeepJoin(rel, nextRemain));
       }
@@ -184,14 +188,14 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     private Collection<JoinNode> enumerateRightDeepJoin(Expr rel, Set<Expr> remain)
         throws OptimizationException {
-      List<JoinNode> enumerated = new ArrayList<>();
+      List<JoinNode> enumerated = new ArrayList<JoinNode>();
       if (remain.size() == 1) {
         enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
             transform(rel), transform(remain.iterator().next())));
       } else {
         Set<Expr> nextRemain;
         for (Expr next : remain) {
-          nextRemain = new HashSet<>(remain);
+          nextRemain = new HashSet<Expr>(remain);
           nextRemain.remove(next);
           enumerated.addAll(createRightDeepJoin(rel, enumerateRightDeepJoin(next, nextRemain)));
         }
@@ -201,7 +205,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
 
     private List<JoinNode> createRightDeepJoin(Expr outer, Collection<JoinNode> enumerated) throws OptimizationException {
-      List<JoinNode> joins = new ArrayList<>();
+      List<JoinNode> joins = new ArrayList<JoinNode>();
       for (JoinNode join : enumerated) {
         joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
       }

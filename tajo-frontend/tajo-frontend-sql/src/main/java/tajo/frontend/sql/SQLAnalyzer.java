@@ -552,7 +552,7 @@ public class SQLAnalyzer {
    */
   private Expr parseFromClause(ParsingContext context, final CommonTree ast) throws SQLSyntaxError {
     CommonTree node;
-    Stack<Expr> list = new Stack<>();
+    Stack<Expr> list = new Stack<Expr>();
     for (int i = 0; i < ast.getChildCount(); i++) {
       node = (CommonTree) ast.getChild(i);
 

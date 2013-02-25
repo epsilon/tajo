@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BasicQueryGraph implements QueryGraph {
-  private Map<Integer, ConnectedBlock> connectedBlocks = new HashMap<>();
+  private Map<Integer, ConnectedBlock> connectedBlocks = new HashMap<Integer, ConnectedBlock>();
 
   @Override
   public int size() {

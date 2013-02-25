@@ -185,7 +185,7 @@ public class SQLAnalyzer {
    * @return
    */
   private static Map<String,String> parseParams(final CommonTree ast) {
-    Map<String, String> params = new HashMap<>();
+    Map<String, String> params = new HashMap<String, String>();
 
     Tree child;
     for (int i = 0; i < ast.getChildCount(); i++) {
@@ -437,10 +437,10 @@ public class SQLAnalyzer {
     } else {
       // the remain ones are grouping fields.
       Tree group;
-      List<ColumnReferenceExpr> columnRefs = new ArrayList<>();
+      List<ColumnReferenceExpr> columnRefs = new ArrayList<ColumnReferenceExpr>();
       ColumnReferenceExpr[] columns;
       ColumnReferenceExpr column;
-      List<GroupElement> groups = new ArrayList<>();
+      List<GroupElement> groups = new ArrayList<GroupElement>();
       for (; idx < ast.getChildCount(); idx++) {
         group = ast.getChild(idx);
         switch (group.getType()) {

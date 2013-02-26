@@ -38,7 +38,7 @@ public class AlgebraicUtil {
    * @param target
    * @return Transposed expression
    */
-  public static EvalNode transpose(EvalNode expr, Column target) {
+  static EvalNode transpose(EvalNode expr, Column target) {
     EvalNode commutated = null;
     // If the variable is in the right term, inverse the expr.
     if (!EvalTreeUtil.containColumnRef(expr.getLeftExpr(), target)) {

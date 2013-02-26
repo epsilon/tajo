@@ -25,15 +25,21 @@ import java.util.*;
 
 public class TajoOptimizer extends AbstractOptimizer {
   private CatalogService catalog;
+  private QueryRewriteEngine rewriteEngine;
 
   public TajoOptimizer(CatalogService catalog) {
     this.catalog = catalog;
+    this.rewriteEngine = new QueryRewriteEngine(catalog);
   }
 
   @Override
   public LogicalNode optimize(Expr algebra) throws OptimizationException {
 
     verify(algebra);
+
+    LogicalNode plan = transform(algebra);
+
+    LogicalNode rewritten = rewriteEngine.rewrite(plan);
 
     LogicalNode [] joinEnumerated = enumeareJoinOrder();
     PriorityQueue<CostedPlan> heap = new PriorityQueue();

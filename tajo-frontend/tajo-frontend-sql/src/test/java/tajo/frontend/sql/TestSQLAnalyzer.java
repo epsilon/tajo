@@ -195,7 +195,8 @@ public class TestSQLAnalyzer {
           "join partsupp on s_suppkey = ps_ps_suppkey " +
           "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15", // 10
       "select * from a cross join b, c, d, e", // 11
-      "select * from x, y, (select * from a, b, c) as ss" // 12
+      "select * from x, y, (select * from a, b, c) as ss", // 12
+      "select * from x, y join (select * from a, b, c) as ss", // 13
 
   };
 
@@ -378,6 +379,21 @@ public class TestSQLAnalyzer {
     assertEquals(ExprType.TableSubQuery, list.getRelations()[2].getType());
     TableSubQuery subQuery = (TableSubQuery) list.getRelations()[2];
     assertEquals("ss", subQuery.getName());
+  }
+
+  @Test
+  public final void testSubQueryJoin2() throws SQLSyntaxError {
+    Expr expr = analyzer.parse(JOINS[13]);
+
+    System.out.println(expr);
+
+    assertEquals(ExprType.Projection, expr.getType());
+    Projection projection = (Projection) expr;
+    assertEquals(ExprType.RelationList,projection.getChild().getType());
+    RelationList list = (RelationList) projection.getChild();
+    assertEquals(2, list.getRelations().length);
+    assertEquals(ExprType.Relation, list.getRelations()[0].getType());
+    assertEquals(ExprType.Relation, list.getRelations()[1].getType());
   }
 
   private final String [] setClauses = {

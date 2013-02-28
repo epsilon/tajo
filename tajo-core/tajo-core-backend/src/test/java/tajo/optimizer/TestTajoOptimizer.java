@@ -77,4 +77,17 @@ public class TestTajoOptimizer {
 
     optimizer.transform(expr);
   }
+
+  @Test
+  public void testSubQuery() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select l_orderkey from lineitem join (select p_partkey from part where p_partkey > 5000) as rtable");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    optimizer.transform(expr);
+  }
 }

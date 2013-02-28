@@ -909,20 +909,42 @@ public class TestSQLParser {
 
   public static String [] tableSubQueries = {
       "select c1, c2, c3 from (select c1, c2, c3 from employee) as test",
-      "select c1, c2, c3 from table1 where c3 < (select c4 from table2)"
+      "select c1, c2, c3 from table1 where c3 < (select c4 from table2)",
+      "select c1, c2, c3 from table1, (select c1, c2, c3 from employee) as test",
   };
 
   @Test
   public void testTableSubQuery1() throws RecognitionException {
     SQLParser p = parseExpr(tableSubQueries[0]);
     CommonTree node = (CommonTree) p.statement().getTree();
-    System.out.println(node.toStringTree());
+    assertEquals(SQLParser.SELECT, node.getType());
+    Tree fromClause = node.getChild(0);
+    assertEquals(SQLParser.FROM, fromClause.getType());
+    assertEquals(1, fromClause.getChildCount());
+    assertEquals(SQLParser.SUBQUERY, fromClause.getChild(0).getType());
   }
 
   @Test
   public void testTableSubQuery2() throws RecognitionException {
     SQLParser p = parseExpr(tableSubQueries[1]);
     CommonTree node = (CommonTree) p.statement().getTree();
-    System.out.println(node.toStringTree());
+    assertEquals(SQLParser.SELECT, node.getType());
+    Tree whereClause = node.getChild(2);
+    assertEquals(SQLParser.WHERE, whereClause.getType());
+    assertEquals(SQLParser.Less_Than_Operator, whereClause.getChild(0).getType());
+    assertEquals(SQLParser.FIELD_NAME, whereClause.getChild(0).getChild(0).getType());
+    assertEquals(SQLParser.SUBQUERY, whereClause.getChild(0).getChild(1).getType());
+  }
+
+  @Test
+  public void testTableSubQuery3() throws RecognitionException {
+    SQLParser p = parseExpr(tableSubQueries[2]);
+    CommonTree node = (CommonTree) p.statement().getTree();
+    assertEquals(SQLParser.SELECT, node.getType());
+    Tree fromClause = node.getChild(0);
+    assertEquals(SQLParser.FROM, fromClause.getType());
+    assertEquals(2, fromClause.getChildCount());
+    assertEquals(SQLParser.TABLE, fromClause.getChild(0).getType());
+    assertEquals(SQLParser.SUBQUERY, fromClause.getChild(1).getType());
   }
 }

@@ -310,15 +310,13 @@ named_columns_join
   ;
 
 table_primary
-  : table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
-  | t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
+  : t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
+  | table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
   ;
 
 derived_table
   : table_subquery
   ;
-
-
 
 where_clause
   : WHERE^ search_condition

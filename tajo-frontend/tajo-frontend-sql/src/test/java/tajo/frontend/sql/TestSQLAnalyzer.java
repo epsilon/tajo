@@ -196,7 +196,7 @@ public class TestSQLAnalyzer {
           "join part on p_partkey = ps_partkey and p_type like '%BRASS' and p_size = 15", // 10
       "select * from a cross join b, c, d, e", // 11
       "select * from x, y, (select * from a, b, c) as ss", // 12
-      "select * from x, y join (select * from a, b, c) as ss", // 13
+      "select * from x join (select * from a, b, c) as ss", // 13
 
   };
 

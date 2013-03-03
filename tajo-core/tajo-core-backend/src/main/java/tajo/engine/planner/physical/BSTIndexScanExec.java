@@ -45,7 +45,7 @@ public class BSTIndexScanExec extends PhysicalExec {
   private boolean initialize = true;
   
   public BSTIndexScanExec(TaskAttemptContext context,
-                          StorageManager sm , ScanNode scanNode ,
+                          StorageManager sm , ScanNode scanNode,
        Fragment fragment, Path fileName , Schema keySchema,
        TupleComparator comparator , Datum[] datum) throws IOException {
     super(context, scanNode.getInSchema(), scanNode.getOutSchema());

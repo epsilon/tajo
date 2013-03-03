@@ -15,10 +15,10 @@
 package tajo.optimizer;
 
 import tajo.algebra.Expr;
-import tajo.engine.planner.logical.LogicalNode;
+import tajo.optimizer.annotated.LogicalPlan;
 
 public abstract class AbstractOptimizer {
-  public abstract LogicalNode optimize(Expr algebra) throws OptimizationException;
+  public abstract LogicalPlan optimize(Expr algebra) throws OptimizationException;
 
   /**
    * Should check the following:

@@ -12,27 +12,27 @@
  * limitations under the License.
  */
 
-package tajo.optimizer;
+package tajo.optimizer.annotated;
 
-
-import tajo.engine.planner.logical.LogicalNode;
-
-import java.util.Map;
-
-public class LogicalPlan {
-  Map<String, Integer> blockGraph;
-  Map<Integer, LogicalNode> graph;
-
-  public void addQueryBlock(String blockName, Integer rootId) {
-    blockGraph.put(blockName, rootId);
+public class TableSubQueryOp extends LogicalOp {
+  private LogicalOp op;
+  private String rel_name;
+  public TableSubQueryOp(Integer id) {
+    super(id, OpType.TableSubQuery);
   }
 
-  public Integer getQueryBlockRootId(String blockName) {
-    return blockGraph.get(blockName);
+
+  public void init(LogicalOp op, String name) {
+    this.op = op;
+    this.rel_name = name;
   }
 
-  public LogicalNode getQueryBlockPlan(String blockName) {
-    return graph.get(blockGraph.get(blockName));
+  public String getName() {
+    return rel_name;
+  }
+
+  @Override
+  public String toJSON() {
+    return null;
   }
 }
-

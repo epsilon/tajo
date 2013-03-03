@@ -197,7 +197,7 @@ public class TestGlobalQueryPlanner {
     assertTrue(prev.getStoreTableNode().isLocal());
     assertFalse(it.hasNext());
     
-    ScanNode []scans = prev.getScanNodes();
+    ScanNode[]scans = prev.getScanNodes();
     assertEquals(1, scans.length);
     assertEquals("table0", scans[0].getTableId());
     assertFalse(scans[0].isLocal());
@@ -240,7 +240,7 @@ public class TestGlobalQueryPlanner {
     assertEquals(PARTITION_TYPE.RANGE, prev.getOutputType());
     assertFalse(it.hasNext());
     
-    ScanNode []scans = prev.getScanNodes();
+    ScanNode[]scans = prev.getScanNodes();
     assertEquals(1, scans.length);
     assertEquals("table0", scans[0].getTableId());
     
@@ -268,7 +268,7 @@ public class TestGlobalQueryPlanner {
     assertTrue(next.hasChildQuery());
     assertEquals(PARTITION_TYPE.LIST, next.getOutputType());
     assertEquals(ExprType.PROJECTION, next.getStoreTableNode().getSubNode().getType());
-    ScanNode []scans = next.getScanNodes();
+    ScanNode[]scans = next.getScanNodes();
     assertEquals(1, scans.length);
     Iterator<SubQuery> it= next.getChildIterator();
 
@@ -331,7 +331,7 @@ public class TestGlobalQueryPlanner {
     StoreTableNode store = unit.getStoreTableNode();
     assertEquals(ExprType.JOIN, store.getSubNode().getType());
     assertTrue(unit.hasChildQuery());
-    ScanNode [] scans = unit.getScanNodes();
+    ScanNode[] scans = unit.getScanNodes();
     assertEquals(2, scans.length);
     SubQuery prev;
     for (ScanNode scan : scans) {

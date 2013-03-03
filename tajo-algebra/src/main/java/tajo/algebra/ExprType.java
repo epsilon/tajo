@@ -40,6 +40,7 @@ public enum ExprType {
   // logical operators
   And(BinaryOperator.class),
   Or(BinaryOperator.class),
+  Not,
 
   // comparison operators
   Equals(BinaryOperator.class),
@@ -62,7 +63,8 @@ public enum ExprType {
   CaseWhen(CaseWhenExpr.class),
   Like(LikeExpr.class),
   Literal(LiteralExpr.class),
-  ScalarSubQuery(ScalarSubQuery.class);
+  ScalarSubQuery(ScalarSubQuery.class),
+  Is;
 
   private Class baseClass;
 

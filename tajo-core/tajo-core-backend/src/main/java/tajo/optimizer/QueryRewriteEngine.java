@@ -15,7 +15,7 @@
 package tajo.optimizer;
 
 import tajo.catalog.CatalogService;
-import tajo.engine.planner.logical.LogicalNode;
+import tajo.optimizer.annotated.LogicalPlan;
 
 import java.util.TreeMap;
 
@@ -31,9 +31,9 @@ public class QueryRewriteEngine {
     this.catalog = catalog;
   }
 
-  public LogicalNode rewrite(LogicalNode plan) {
+  public LogicalPlan rewrite(LogicalPlan plan) {
 
-    LogicalNode rewritten = plan;
+    LogicalPlan rewritten = plan;
     // apply rewrite rule in an ascending order of priorities.
     for (RewriteRule rule : rules.values()) {
       if (rule.isFeasible(rewritten))

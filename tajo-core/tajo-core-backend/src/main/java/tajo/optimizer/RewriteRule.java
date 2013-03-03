@@ -14,10 +14,10 @@
 
 package tajo.optimizer;
 
-import tajo.engine.planner.logical.LogicalNode;
+import tajo.optimizer.annotated.LogicalPlan;
 
 public interface RewriteRule {
   String getName();
-  boolean isFeasible(LogicalNode plan);
-  LogicalNode apply(LogicalNode plan);
+  boolean isFeasible(LogicalPlan plan);
+  LogicalPlan apply(LogicalPlan plan);
 }

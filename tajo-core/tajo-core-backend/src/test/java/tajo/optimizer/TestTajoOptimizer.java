@@ -75,7 +75,7 @@ public class TestTajoOptimizer {
 
     TajoOptimizer optimizer = new TajoOptimizer(catalog);
 
-    optimizer.transform(expr);
+    //optimizer.transform(expr);
   }
 
   @Test
@@ -88,6 +88,6 @@ public class TestTajoOptimizer {
 
     TajoOptimizer optimizer = new TajoOptimizer(catalog);
 
-    optimizer.transform(expr);
+    optimizer.optimize(expr);
   }
 }

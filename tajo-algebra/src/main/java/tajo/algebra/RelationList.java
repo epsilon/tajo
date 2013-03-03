@@ -43,6 +43,10 @@ public class RelationList extends Expr {
     return this.relations;
   }
 
+  public int size() {
+    return this.relations.length;
+  }
+
   @Override
   public String toString() {
     return toJson();

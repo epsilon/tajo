@@ -14,7 +14,7 @@ public class IndexScanNode extends ScanNode {
   @Expose private Datum[] datum = null;
   //TODO- @Expose private IndexType type;
   
-  public IndexScanNode(ScanNode scanNode , 
+  public IndexScanNode(ScanNode scanNode,
       Schema keySchema , Datum[] datum, SortSpec[] sortKeys ) {
     super();
     setQual(scanNode.getQual());

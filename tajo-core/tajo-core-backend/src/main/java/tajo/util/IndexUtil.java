@@ -61,7 +61,7 @@ public class IndexUtil {
     return builder.toString();
   }
   
-  public static IndexScanNode indexEval( ScanNode scanNode, 
+  public static IndexScanNode indexEval( ScanNode scanNode,
       Iterator<Entry<String, String>> iter ) {
    
     EvalNode qual = scanNode.getQual();

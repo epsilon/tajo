@@ -1053,7 +1053,7 @@ public class GlobalPlanner {
    * @return
    */
   private List<QueryUnit> makeBinaryQueryUnit(SubQuery subQuery, final int n,
-      Map<ScanNode, List<Fragment>> fragMap, 
+      Map<ScanNode, List<Fragment>> fragMap,
       Map<ScanNode, List<URI>> fetchMap) {
     List<QueryUnit> queryUnits = new ArrayList<QueryUnit>();
     final int maxQueryUnitNum = n;
@@ -1094,7 +1094,7 @@ public class GlobalPlanner {
       // make query units for every composition of fragments of each scan
       Preconditions.checkArgument(fragmentMap.size()==2);
 
-      ScanNode [] scanNodes = subQuery.getScanNodes();
+      ScanNode[] scanNodes = subQuery.getScanNodes();
       String innerId = null, outerId = null;
 
       // If one relation is set to broadcast, it meaning that the relation
@@ -1160,7 +1160,7 @@ public class GlobalPlanner {
    * @return
    */
   private List<QueryUnit> makeUnaryQueryUnit(SubQuery subQuery, int n,
-      Map<ScanNode, List<Fragment>> fragMap, 
+      Map<ScanNode, List<Fragment>> fragMap,
       Map<ScanNode, List<URI>> fetchMap, SortSpec[] sortSpecs) throws UnsupportedEncodingException {
     List<QueryUnit> queryUnits = new ArrayList<QueryUnit>();
     int maxQueryUnitNum;
@@ -1265,7 +1265,7 @@ public class GlobalPlanner {
     QueryUnit unit;
     int i = 0;
     Map<String, Map<ScanNode, List<URI>>> hashed = hashFetches(fetchMap);
-    Iterator<Entry<String, Map<ScanNode, List<URI>>>> it = 
+    Iterator<Entry<String, Map<ScanNode, List<URI>>>> it =
         hashed.entrySet().iterator();
     Entry<String, Map<ScanNode, List<URI>>> e;
     while (it.hasNext()) {
@@ -1368,7 +1368,7 @@ public class GlobalPlanner {
    * @return
    */
   private List<QueryUnit> assignFetchesByRoundRobin(SubQuery subQuery,
-      List<QueryUnit> unitList, ScanNode scan, List<URI> uriList, int n) { 
+      List<QueryUnit> unitList, ScanNode scan, List<URI> uriList, int n) {
     QueryUnit unit;
     int i = 0;
     for (URI uri : uriList) {
@@ -1589,9 +1589,9 @@ public class GlobalPlanner {
     return unitList;
   }
   
-  private Map<String, Map<ScanNode, List<Fragment>>> hashFragments(Map<ScanNode, 
+  private Map<String, Map<ScanNode, List<Fragment>>> hashFragments(Map<ScanNode,
       List<Fragment>> fragMap) {
-    SortedMap<String, Map<ScanNode, List<Fragment>>> hashed = 
+    SortedMap<String, Map<ScanNode, List<Fragment>>> hashed =
         new TreeMap<String, Map<ScanNode,List<Fragment>>>();
     String key;
     Map<ScanNode, List<Fragment>> m;

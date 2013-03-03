@@ -12,16 +12,29 @@
  * limitations under the License.
  */
 
-package tajo.optimizer;
+package tajo.engine.planner.logical;
 
-import tajo.algebra.Expr;
-import tajo.engine.planner.logical.LogicalNode;
+public class RelationListNode extends LogicalNode {
+  final LogicalNode [] relations;
 
-import java.util.List;
+  public RelationListNode(LogicalNode [] relations) {
+    this.relations = relations;
+  }
 
-public class LogicalPlanner2 {
-  public LogicalPlan createPlan(Expr expr) {
+  public LogicalNode [] getRelations() {
+    return this.relations;
+  }
 
+  @Override
+  public String toJSON() {
     return null;
+  }
+
+  @Override
+  public void preOrder(LogicalNodeVisitor visitor) {
+  }
+
+  @Override
+  public void postOrder(LogicalNodeVisitor visitor) {
   }
 }

@@ -17,8 +17,10 @@ package tajo.optimizer;
 import tajo.algebra.*;
 import tajo.catalog.CatalogService;
 import tajo.catalog.TableDesc;
+import tajo.engine.eval.EvalNode;
 import tajo.engine.planner.logical.ExprType;
 import tajo.engine.planner.logical.*;
+import tajo.optimizer.annotated.*;
 import tajo.util.TUtil;
 
 import java.util.*;
@@ -27,72 +29,79 @@ public class TajoOptimizer extends AbstractOptimizer {
   private CatalogService catalog;
   private QueryRewriteEngine rewriteEngine;
 
+  private class OptimizationContext {
+
+  }
+
   public TajoOptimizer(CatalogService catalog) {
     this.catalog = catalog;
     this.rewriteEngine = new QueryRewriteEngine(catalog);
   }
 
   @Override
-  public LogicalNode optimize(Expr algebra) throws OptimizationException {
+  public LogicalPlan optimize(Expr algebra) throws OptimizationException {
+
+    LogicalPlan plan = new LogicalPlan();
 
     verify(algebra);
 
-    LogicalNode plan = transform(algebra);
+    transform(plan, algebra);
 
-    LogicalNode rewritten = rewriteEngine.rewrite(plan);
+    LogicalPlan rewritten = rewriteEngine.rewrite(plan);
 
-    LogicalNode [] joinEnumerated = enumeareJoinOrder();
-    PriorityQueue<CostedPlan> heap = new PriorityQueue();
-
-    for (LogicalNode joinOrder : joinEnumerated) {
-      LogicalNode step1 = pushdownSelection(joinOrder);
-      LogicalNode step2 = pushdownProjection(step1);
-//      CostedPlan costedPlan = computeCost(step2);
-//      heap.add(costedPlan);
-    }
-
-    return heap.poll().plan;
+    return plan;
   }
 
-  private class PlanningContext2 {
-
-  }
-
-  public LogicalNode transform(Expr expr) throws OptimizationException {
-    LogicalNode child;
-    LogicalNode left;
-    LogicalNode right;
+  public LogicalOp transform(LogicalPlan plan, Expr expr) throws OptimizationException {
+    LogicalOp child;
+    LogicalOp left;
+    LogicalOp right;
     switch (expr.getType()) {
       case Projection:
         Projection projection = (Projection) expr;
-        child = transform(projection.getChild());
-        ProjectionNode projNode = new ProjectionNode(null);
-        break;
+        child = transform(plan, projection.getChild());
+        return child;
 
       case RelationList:
-        RelationList relationList = (RelationList) expr;
-        createImplicitJoinPlan(relationList);
         break;
 
       case Selection:
-        Selection selection = (Selection) expr;
+        Selection selecstion = (Selection) expr;
+        child = transform(plan, selecstion.getChild());
+
         break;
 
       case Join:
         Join join = (Join) expr;
-        break;
+
+        left = transform(plan, join.getLeft());
+        right = transform(plan, join.getRight());
+
+        JoinOp joinOp = plan.createLogicalOp(JoinOp.class);
+        joinOp.setOuter(left);
+        joinOp.setInner(right);
+        plan.add(joinOp);
+        return joinOp;
 
       case Relation:
         Relation relation = (Relation) expr;
         verifyRelation(relation);
         TableDesc desc = catalog.getTableDesc(relation.getName());
-        ScanNode scanNode = new ScanNode(relation, desc.getMeta().getSchema());
-        return scanNode;
+        RelationOp relationOp = plan.createLogicalOp(RelationOp.class);
+        relationOp.init(relation, desc.getMeta().getSchema());
+        plan.add(relationOp);
+        return relationOp;
 
       // the below will has separate query blocks
       case ScalarSubQuery:
 
       case TableSubQuery:
+        TableSubQuery tableSubQuery = (TableSubQuery) expr;
+        child = transform(plan, tableSubQuery.getSubQuery());
+        TableSubQueryOp subQueryOp = plan.createLogicalOp(TableSubQueryOp.class);
+        subQueryOp.init(child, tableSubQuery.getName());
+        plan.add(subQueryOp);
+        return subQueryOp;
 
       case Union:
 
@@ -102,6 +111,16 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
 
     return null;
+  }
+
+  private RelationListNode createRelationListNode(RelationList expr) throws OptimizationException {
+    LogicalNode [] relations = new LogicalNode[expr.size()];
+    Expr [] exprs = expr.getRelations();
+    for (int i = 0; i < expr.size(); i++) {
+      //relations[i] = transform(exprs[0]);
+    }
+
+    return new RelationListNode(relations);
   }
 
   private LogicalNode createImplicitJoinPlan(RelationList expr) throws OptimizationException {
@@ -154,8 +173,8 @@ public class TajoOptimizer extends AbstractOptimizer {
         throws OptimizationException {
       List<JoinNode> enumerated = new ArrayList<JoinNode>();
       if (remain.size() == 1) {
-        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
-            transform(rel), transform(remain.iterator().next())));
+//        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
+//            transform(rel), transform(remain.iterator().next())));
       } else {
         Set<Expr> nextRemain;
         for (Expr next : remain) {
@@ -171,7 +190,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     private List<JoinNode> createLeftDeepJoin(Collection<JoinNode> enumerated, Expr inner) throws OptimizationException {
       List<JoinNode> joins = new ArrayList<JoinNode>();
       for (JoinNode join : enumerated) {
-        joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
+        //joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
       }
       return joins;
     }
@@ -196,8 +215,8 @@ public class TajoOptimizer extends AbstractOptimizer {
         throws OptimizationException {
       List<JoinNode> enumerated = new ArrayList<JoinNode>();
       if (remain.size() == 1) {
-        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
-            transform(rel), transform(remain.iterator().next())));
+        //enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
+          //  transform(rel), transform(remain.iterator().next())));
       } else {
         Set<Expr> nextRemain;
         for (Expr next : remain) {
@@ -213,7 +232,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     private List<JoinNode> createRightDeepJoin(Expr outer, Collection<JoinNode> enumerated) throws OptimizationException {
       List<JoinNode> joins = new ArrayList<JoinNode>();
       for (JoinNode join : enumerated) {
-        joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
+        //joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
       }
       return joins;
     }
@@ -331,5 +350,58 @@ public class TajoOptimizer extends AbstractOptimizer {
 
   LogicalNode[] enumeareJoinOrder() {
     return new LogicalNode[0];  //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  public EvalNode createEvalTree(final Expr expr) {
+    switch(expr.getType()) {
+
+      // constants
+      case Literal:
+
+      // unary expression
+      case Not:
+        break;
+
+      // binary expressions
+      case Like:
+        break;
+
+      case Is:
+        break;
+
+      case And:
+      case Or:
+      case Equals:
+      case NotEquals:
+      case LessThan:
+      case LessThanOrEquals:
+      case GreaterThan:
+      case GreaterThanOrEquals:
+      case Plus:
+      case Minus:
+      case Multiply:
+      case Divide:
+      case Mod:
+        break;
+
+      // others
+      case Column:
+        break;
+
+      case Function:
+        break;
+
+
+      case CaseWhen:
+        break;
+
+      default:
+    }
+    return null;
+  }
+
+
+  public EvalNode createBinaryEvalNode(Expr expr) {
+    return null;
   }
 }

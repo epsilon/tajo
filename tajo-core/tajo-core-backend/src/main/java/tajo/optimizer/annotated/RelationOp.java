@@ -28,7 +28,9 @@ import tajo.engine.planner.logical.LogicalNodeVisitor;
 import tajo.util.TUtil;
 
 public class RelationOp extends LogicalOp {
-	@Expose private FromTable table;
+	@Expose private String rel_name;
+  @Expose private Schema schema;
+  @Expose private String alias;
 	@Expose private EvalNode qual;
 	@Expose private Target[] targets;
 
@@ -37,21 +39,30 @@ public class RelationOp extends LogicalOp {
 	}
 
   public void init(Relation relation, Schema schema) {
-    table = new FromTable(relation.getName(), schema);
+    rel_name = relation.getName();
+    this.schema = schema;
     if (relation.hasAlias()) {
-      table.setAlias(relation.getAlias());
+      alias = relation.getAlias();
     }
     setInSchema(schema);
     setOutSchema(schema);
   }
 	
 	public String getTableId() {
-	  return table.getTableName();
+	  return rel_name;
 	}
+
+  public Schema getSchema() {
+    return this.schema;
+  }
 	
 	public boolean hasAlias() {
-	  return table.hasAlias();
+	  return alias != null;
 	}
+
+  public String getAlias() {
+    return alias;
+  }
 	
 	public boolean hasQual() {
 	  return qual != null;
@@ -87,7 +98,7 @@ public class RelationOp extends LogicalOp {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.table, this.qual, this.targets);
+    return Objects.hashCode(rel_name, alias, qual, targets);
   }
 	
 	@Override
@@ -96,7 +107,8 @@ public class RelationOp extends LogicalOp {
 	    RelationOp other = (RelationOp) obj;
 	    
 	    boolean eq = super.equals(other); 
-	    eq = eq && TUtil.checkEquals(this.table, other.table);
+	    eq = eq && TUtil.checkEquals(rel_name, other.rel_name);
+      eq = eq && TUtil.checkEquals(alias, other.alias);
 	    eq = eq && TUtil.checkEquals(this.qual, other.qual);
 	    eq = eq && TUtil.checkEquals(this.targets, other.targets);
 	    
@@ -110,7 +122,8 @@ public class RelationOp extends LogicalOp {
 	public Object clone() throws CloneNotSupportedException {
 	  RelationOp scanNode = (RelationOp) super.clone();
 	  
-	  scanNode.table = (FromTable) this.table.clone();
+	  scanNode.rel_name = this.rel_name;
+    scanNode.alias = this.alias;
 	  
 	  if (hasQual()) {
 	    scanNode.qual = (EvalNode) this.qual.clone();
@@ -125,4 +138,14 @@ public class RelationOp extends LogicalOp {
 	  
 	  return scanNode;
 	}
+
+  @Override
+  public void preOrder(LogicalOpVisitor visitor) {
+    visitor.visit(this);
+  }
+
+  @Override
+  public void postOrder(LogicalOpVisitor visitor) {
+    visitor.visit(this);
+  }
 }

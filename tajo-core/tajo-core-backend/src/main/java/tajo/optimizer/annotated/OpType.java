@@ -35,6 +35,7 @@ public enum OpType {
 	RECEIVE,
 	RENAME,
   Relation,
+  RelationList,
 	SELECTION,
 	SEND,
 	SET_DIFF, 

@@ -14,32 +14,34 @@
 
 package tajo.optimizer.annotated;
 
-public class TableSubQueryOp extends LogicalOp {
-  private LogicalOp op;
-  private String rel_name;
-  public TableSubQueryOp(Integer id) {
-    super(id, OpType.TableSubQuery);
+public class RelationListOp extends LogicalOp {
+  LogicalOp [] relations;
+
+  public RelationListOp(Integer id) {
+    super(id, OpType.RelationList);
   }
 
-
-  public void init(LogicalOp op, String name) {
-    this.op = op;
-    this.rel_name = name;
+  public void init(LogicalOp [] relations) {
+    this.relations = relations;
   }
 
-  public String getName() {
-    return rel_name;
+  public LogicalOp [] getRelations() {
+    return this.relations;
   }
 
   @Override
   public void preOrder(LogicalOpVisitor visitor) {
     visitor.visit(this);
-    op.preOrder(visitor);
+    for (LogicalOp relation : relations) {
+      relation.preOrder(visitor);
+    }
   }
 
   @Override
   public void postOrder(LogicalOpVisitor visitor) {
-    op.postOrder(visitor);
+    for (LogicalOp relation : relations) {
+      relation.postOrder(visitor);
+    }
     visitor.visit(this);
   }
 }

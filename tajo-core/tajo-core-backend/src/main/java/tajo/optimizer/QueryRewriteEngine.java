@@ -36,7 +36,7 @@ public class QueryRewriteEngine {
     LogicalPlan rewritten = plan;
     // apply rewrite rule in an ascending order of priorities.
     for (RewriteRule rule : rules.values()) {
-      if (rule.isFeasible(rewritten))
+      if (rule.isEligible(rewritten))
       rewritten = rule.apply(plan);
     }
     return rewritten;

@@ -23,6 +23,7 @@ import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock;
 import tajo.engine.planner.logical.ExprType;
+import tajo.engine.planner.logical.LogicalNodeVisitor;
 
 /**
  * @author Hyunsik Choi
@@ -94,9 +95,5 @@ public class JoinOp extends BinaryOp implements Cloneable {
         + "\n\"out schema: " + getOutSchema()
         + "\n\"in schema: " + getInSchema()
     		+ "\n" + getOuterNode().toString() + " and " + getInnerNode();
-  }
-
-  public String toJSON() {
-    return GsonCreator.getInstance().toJson(this, LogicalOp.class);
   }
 }

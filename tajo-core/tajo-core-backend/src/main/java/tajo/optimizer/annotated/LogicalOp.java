@@ -20,6 +20,7 @@ package tajo.optimizer.annotated;
 import com.google.gson.annotations.Expose;
 import tajo.catalog.Schema;
 import tajo.engine.planner.logical.ExprType;
+import tajo.engine.planner.logical.LogicalNodeVisitor;
 
 import java.util.Map;
 
@@ -96,6 +97,7 @@ public abstract class LogicalOp implements Cloneable {
 	  
 	  return node;
 	}
-	
-	public abstract String toJSON();
+
+  public abstract void preOrder(LogicalOpVisitor visitor);
+  public abstract void postOrder(LogicalOpVisitor visitor);
 }

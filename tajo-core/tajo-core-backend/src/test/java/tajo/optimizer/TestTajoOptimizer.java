@@ -26,6 +26,9 @@ import tajo.catalog.statistics.TableStat;
 import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
+import tajo.optimizer.annotated.LogicalOp;
+import tajo.optimizer.annotated.LogicalOpVisitor;
+import tajo.optimizer.annotated.LogicalPlan;
 
 public class TestTajoOptimizer {
   private static TajoTestingCluster util;
@@ -43,10 +46,10 @@ public class TestTajoOptimizer {
 
     // TPC-H Schema for Complex Queries
     String [] tpchTables = {
-        "part", "supplier", "partsupp", "nation", "region", "lineitem"
+        "part", "supplier", "partsupp", "nation", "region", "lineitem", "customer", "orders"
     };
     int [] tableVolumns = {
-        100, 200, 50, 5, 5, 800
+        100, 200, 50, 5, 5, 800, 300, 100
     };
     tpch = new TPCH();
     tpch.loadSchemas();
@@ -90,4 +93,22 @@ public class TestTajoOptimizer {
 
     optimizer.optimize(expr);
   }
+
+  @Test
+  public void testJoin() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select l_orderkey, o_orderdate, o_shippriority from customer, orders, lineitem where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < '1995-03-15' and l_shipdate > '1995-03-15'");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+
+    System.out.println(plan.toString());
+
+  }
+
 }

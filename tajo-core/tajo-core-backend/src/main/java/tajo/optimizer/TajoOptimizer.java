@@ -16,8 +16,14 @@ package tajo.optimizer;
 
 import tajo.algebra.*;
 import tajo.catalog.CatalogService;
+import tajo.catalog.Column;
 import tajo.catalog.TableDesc;
+import tajo.datum.DatumFactory;
+import tajo.engine.eval.BinaryEval;
+import tajo.engine.eval.ConstEval;
 import tajo.engine.eval.EvalNode;
+import tajo.engine.eval.EvalNode.Type;
+import tajo.engine.eval.FieldEval;
 import tajo.engine.planner.logical.ExprType;
 import tajo.engine.planner.logical.*;
 import tajo.optimizer.annotated.*;
@@ -45,7 +51,9 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     verify(algebra);
 
-    transform(plan, algebra);
+    LogicalOp root = transform(plan, algebra);
+    plan.setRoot(root);
+
 
     LogicalPlan rewritten = rewriteEngine.rewrite(plan);
 
@@ -63,13 +71,19 @@ public class TajoOptimizer extends AbstractOptimizer {
         return child;
 
       case RelationList:
-        break;
+        RelationList relationList = (RelationList) expr;
+        child = createRelationListNode(plan, relationList);
+        return child;
 
       case Selection:
-        Selection selecstion = (Selection) expr;
-        child = transform(plan, selecstion.getChild());
-
-        break;
+        Selection selection = (Selection) expr;
+        child = transform(plan, selection.getChild());
+        EvalNode searchCondition = createEvalTree(plan, selection.getQual());
+        SelectionOp selectionOp = plan.createLogicalOp(SelectionOp.class);
+        selectionOp.setQual(searchCondition);
+        selectionOp.setChild(child);
+        plan.add(selectionOp);
+        return selectionOp;
 
       case Join:
         Join join = (Join) expr;
@@ -113,14 +127,18 @@ public class TajoOptimizer extends AbstractOptimizer {
     return null;
   }
 
-  private RelationListNode createRelationListNode(RelationList expr) throws OptimizationException {
-    LogicalNode [] relations = new LogicalNode[expr.size()];
+  private RelationListOp createRelationListNode(LogicalPlan plan, RelationList expr)
+      throws OptimizationException {
+    LogicalOp [] relations = new LogicalOp[expr.size()];
     Expr [] exprs = expr.getRelations();
     for (int i = 0; i < expr.size(); i++) {
-      //relations[i] = transform(exprs[0]);
+      relations[i] = transform(plan, exprs[i]);
     }
 
-    return new RelationListNode(relations);
+    RelationListOp relationListOp = plan.createLogicalOp(RelationListOp.class);
+    relationListOp.init(relations);
+    plan.add(relationListOp);
+    return relationListOp;
   }
 
   private LogicalNode createImplicitJoinPlan(RelationList expr) throws OptimizationException {
@@ -330,14 +348,6 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
   }
 
-  private LogicalNode pushdownProjection(LogicalNode plan) {
-    return null;
-  }
-
-  private LogicalNode pushdownSelection(LogicalNode plan) {
-    return null;
-  }
-
   @Override
   void verify(Expr algebra) throws OptimizationException {
   }
@@ -348,15 +358,24 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
   }
 
-  LogicalNode[] enumeareJoinOrder() {
-    return new LogicalNode[0];  //To change body of implemented methods use File | Settings | File Templates.
-  }
-
-  public EvalNode createEvalTree(final Expr expr) {
+  public EvalNode createEvalTree(LogicalPlan plan, final Expr expr) throws VerifyException {
     switch(expr.getType()) {
 
       // constants
       case Literal:
+        LiteralExpr literal = (LiteralExpr) expr;
+        switch (literal.getValueType()) {
+          case String:
+            return new ConstEval(DatumFactory.createString(literal.getValue()));
+          case Unsigned_Integer:
+            return new ConstEval(DatumFactory.createInt(literal.getValue()));
+          case Unsigned_Large_Integer:
+            return new ConstEval(DatumFactory.createLong(literal.getValue()));
+          case Unsigned_Float:
+            return new ConstEval(DatumFactory.createFloat(literal.getValue()));
+          default:
+            throw new VerifyException("Unsupported type: " + literal.getValueType());
+        }
 
       // unary expression
       case Not:
@@ -382,11 +401,20 @@ public class TajoOptimizer extends AbstractOptimizer {
       case Multiply:
       case Divide:
       case Mod:
-        break;
+        BinaryOperator bin = (BinaryOperator) expr;
+        return new BinaryEval(exprTypeToEvalType(expr.getType()),
+            createEvalTree(plan, bin.getLeft()), createEvalTree(plan, bin.getRight()));
 
       // others
       case Column:
-        break;
+        ColumnReferenceExpr columnRef = (ColumnReferenceExpr) expr;
+        Column column;
+        if (columnRef.hasRelationName()) {
+          column = plan.getColumn(columnRef.getRelationName(), columnRef.getName());
+        } else {
+          column = plan.getColumn(columnRef.getName());
+        }
+        return new FieldEval(column);
 
       case Function:
         break;
@@ -398,6 +426,27 @@ public class TajoOptimizer extends AbstractOptimizer {
       default:
     }
     return null;
+  }
+
+  private Type exprTypeToEvalType(tajo.algebra.ExprType type) throws VerifyException {
+    switch (type) {
+      case And: return Type.AND;
+      case Or: return Type.OR;
+      case Equals: return Type.EQUAL;
+      case NotEquals: return Type.NOT_EQUAL;
+      case LessThan: return Type.LTH;
+      case LessThanOrEquals: return Type.LEQ;
+      case GreaterThan: return Type.GTH;
+      case GreaterThanOrEquals: return Type.GEQ;
+      case Plus: return Type.PLUS;
+      case Minus: return Type.MINUS;
+      case Multiply: return Type.MULTIPLY;
+      case Divide: return Type.DIVIDE;
+      case Mod: return Type.MODULAR;
+      case Column: return Type.FIELD;
+      case Function: return Type.FUNCTION;
+      default: throw new VerifyException("Unsupported type: " + type);
+    }
   }
 
 

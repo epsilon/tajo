@@ -14,8 +14,8 @@
 
 package tajo.optimizer.rewrite;
 
-import tajo.engine.planner.logical.LogicalNode;
 import tajo.optimizer.RewriteRule;
+import tajo.optimizer.annotated.LogicalPlan;
 
 public class ProjectionPushdown implements RewriteRule {
 
@@ -25,12 +25,12 @@ public class ProjectionPushdown implements RewriteRule {
   }
 
   @Override
-  public boolean isFeasible(LogicalNode plan) {
+  public boolean isEligible(LogicalPlan plan) {
     return false;
   }
 
   @Override
-  public LogicalNode apply(LogicalNode plan) {
+  public LogicalPlan apply(LogicalPlan plan) {
     return null;
   }
 }

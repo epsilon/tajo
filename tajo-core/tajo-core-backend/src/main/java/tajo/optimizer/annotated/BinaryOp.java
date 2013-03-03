@@ -18,9 +18,6 @@
 package tajo.optimizer.annotated;
 
 import com.google.gson.annotations.Expose;
-import tajo.engine.json.GsonCreator;
-import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.LogicalNode;
 
 /**
  * @author Hyunsik Choi
@@ -61,9 +58,17 @@ public abstract class BinaryOp extends LogicalOp implements Cloneable {
 	  return binNode;
 	}
 
-  public String toJSON() {
-    outer.toJSON();
-    inner.toJSON();
-    return GsonCreator.getInstance().toJson(this, LogicalNode.class);
+  @Override
+  public void preOrder(LogicalOpVisitor visitor) {
+    visitor.visit(this);
+    outer.preOrder(visitor);
+    inner.preOrder(visitor);
+  }
+
+  @Override
+  public void postOrder(LogicalOpVisitor visitor) {
+    outer.postOrder(visitor);
+    inner.postOrder(visitor);
+    visitor.visit(this);
   }
 }

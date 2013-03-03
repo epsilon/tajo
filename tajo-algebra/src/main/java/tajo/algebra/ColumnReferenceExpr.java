@@ -33,6 +33,10 @@ public class ColumnReferenceExpr extends Expr {
     return this.column_name;
   }
 
+  public boolean hasRelationName() {
+    return this.rel_name != null;
+  }
+
   public String getRelationName() {
     return this.rel_name;
   }

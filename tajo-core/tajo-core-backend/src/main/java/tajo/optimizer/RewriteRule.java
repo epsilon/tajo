@@ -18,6 +18,6 @@ import tajo.optimizer.annotated.LogicalPlan;
 
 public interface RewriteRule {
   String getName();
-  boolean isFeasible(LogicalPlan plan);
+  boolean isEligible(LogicalPlan plan);
   LogicalPlan apply(LogicalPlan plan);
 }

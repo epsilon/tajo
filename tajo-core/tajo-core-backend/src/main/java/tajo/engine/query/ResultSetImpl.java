@@ -1903,6 +1903,16 @@ public class ResultSetImpl implements ResultSet {
     throw new UnsupportedException();
   }
 
+  @Override
+  public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+    throw new UnsupportedException();
+  }
+
+  @Override
+  public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+    throw new UnsupportedException();
+  }
+
   /*
    * (non-Javadoc)
    * 

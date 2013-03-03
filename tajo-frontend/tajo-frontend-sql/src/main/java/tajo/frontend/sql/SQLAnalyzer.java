@@ -644,40 +644,49 @@ public class SQLAnalyzer {
   private Join parseQualifiedJoinClause(ParsingContext context, final Tree ast, final int idx)
       throws SQLSyntaxError {
     int childIdx = idx;
-    Join join = null;
 
-    if (ast.getChild(childIdx).getType() == SQLParser.TABLE) { // default join
-      join = new Join(JoinType.INNER);
-      join.setRight(parseTable((CommonTree) ast.getChild(childIdx)));
-
+    // getting join type
+    JoinType joinType = null;
+    if (ast.getChildCount() < 3) {
+      joinType = JoinType.INNER;
     } else {
-
-      if (ast.getChild(childIdx).getType() == SQLParser.INNER) {
-        join = new Join(JoinType.INNER);
-
-      } else if (ast.getChild(childIdx).getType() == SQLParser.OUTER) {
-
+      int type = ast.getChild(childIdx).getType();
+      if (type == SQLParser.INNER) {
+        joinType = JoinType.INNER;
+      } else if (type == SQLParser.OUTER) {
         switch (ast.getChild(childIdx).getChild(0).getType()) {
           case SQLParser.LEFT:
-            join = new Join(JoinType.LEFT_OUTER);
+            joinType = JoinType.LEFT_OUTER;
             break;
           case SQLParser.RIGHT:
-            join = new Join(JoinType.RIGHT_OUTER);
+            joinType = JoinType.RIGHT_OUTER;
             break;
           case SQLParser.FULL:
-            join = new Join(JoinType.FULL_OUTER);
+            joinType = JoinType.FULL_OUTER;
             break;
           default:
             throw new SQLSyntaxError(context.rawQuery, "Unknown Join Type");
         }
       }
-
       childIdx++;
-      join.setRight(parseTable((CommonTree) ast.getChild(childIdx)));
     }
 
+    // construct the right table
+    Join join = new Join(joinType);
+    int type = ast.getChild(childIdx).getType();
+    Expr right = null;
+    if (type == SQLParser.TABLE) { // default join
+      right = parseTable((CommonTree) ast.getChild(childIdx));
+    } else if (type == SQLParser.SUBQUERY) {
+      Tree subQuery = ast.getChild(childIdx);
+      Expr nestedAlgebra = parseSelectStatement(context, subQuery.getChild(0));
+      String alias = subQuery.getChild(1).getText();
+      right = new TableSubQuery(alias, nestedAlgebra);
+    }
+    join.setRight(right);
     childIdx++;
 
+    // getting and setting join qual
     if (ast.getChildCount() > childIdx) {
       CommonTree joinQual = (CommonTree) ast.getChild(childIdx);
 

@@ -911,6 +911,7 @@ public class TestSQLParser {
       "select c1, c2, c3 from (select c1, c2, c3 from employee) as test",
       "select c1, c2, c3 from table1 where c3 < (select c4 from table2)",
       "select c1, c2, c3 from table1, (select c1, c2, c3 from employee) as test",
+      "select c1, c2, c3 from table1 join (select c1, c2, c3 from employee) as test on c1 = test.c3",
   };
 
   @Test
@@ -946,5 +947,17 @@ public class TestSQLParser {
     assertEquals(2, fromClause.getChildCount());
     assertEquals(SQLParser.TABLE, fromClause.getChild(0).getType());
     assertEquals(SQLParser.SUBQUERY, fromClause.getChild(1).getType());
+  }
+
+  @Test
+  public void testTableSubQuery4() throws RecognitionException {
+    SQLParser p = parseExpr(tableSubQueries[3]);
+    CommonTree node = (CommonTree) p.statement().getTree();
+    assertEquals(SQLParser.SELECT, node.getType());
+    Tree fromClause = node.getChild(0);
+    assertEquals(SQLParser.FROM, fromClause.getType());
+    assertEquals(2, fromClause.getChildCount());
+    assertEquals(SQLParser.TABLE, fromClause.getChild(0).getType());
+    assertEquals(SQLParser.JOIN, fromClause.getChild(1).getType());
   }
 }

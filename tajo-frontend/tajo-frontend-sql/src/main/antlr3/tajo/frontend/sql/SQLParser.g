@@ -269,7 +269,7 @@ cross_join
   ;
 
 qualified_join
-  : (t=join_type)? JOIN r=table_primary s=join_specification -> ^(JOIN $t? $r $s)
+  : (t=join_type)? JOIN r=table_reference s=join_specification -> ^(JOIN $t? $r $s)
   ;
 
 natural_join
@@ -310,8 +310,8 @@ named_columns_join
   ;
 
 table_primary
-  : t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
-  | table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
+  : table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
+  | t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
   ;
 
 derived_table

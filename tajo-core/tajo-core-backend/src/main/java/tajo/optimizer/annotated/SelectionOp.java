@@ -37,12 +37,6 @@ public class SelectionOp extends UnaryOp implements Cloneable {
 		putAnnotation("qual", cnf);
 	}
   
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Selection\n  Search Cond: " + getQual());
-    return sb.toString();
-  }
-  
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof SelectionOp) {

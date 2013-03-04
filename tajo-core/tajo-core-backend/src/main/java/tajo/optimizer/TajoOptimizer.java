@@ -22,6 +22,7 @@ import tajo.datum.DatumFactory;
 import tajo.engine.eval.*;
 import tajo.engine.eval.EvalNode.Type;
 import tajo.engine.parser.QueryBlock;
+import tajo.engine.planner.PlannerUtil;
 import tajo.engine.planner.logical.ExprType;
 import tajo.engine.planner.logical.JoinNode;
 import tajo.engine.planner.logical.LogicalNode;
@@ -53,9 +54,12 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     LogicalOp root = transform(plan, algebra);
     plan.setRoot(root);
+
     LogicalPlan rewritten = rewriteEngine.rewrite(plan);
 
-    return plan;
+    LogicalPlan optimized = findBestJoinOrder(rewritten);
+
+    return optimized;
   }
 
   public LogicalOp transform(LogicalPlan plan, Expr expr) throws OptimizationException {
@@ -189,6 +193,27 @@ public class TajoOptimizer extends AbstractOptimizer {
     printJoinOrder(bestPlan);
     System.out.print("(cost: " + computeCost(bestPlan) + ")");
 
+    return null;
+  }
+
+  private LogicalPlan findBestJoinOrder(LogicalPlan plan) {
+    SelectionOp selectionOp = (SelectionOp) OptimizerUtil.findTopNode(plan, OpType.Selection);
+
+    JoinGraph joinGraph = new JoinGraph();
+    for (EvalNode expr : selectionOp.getQual()) {
+      if (PlannerUtil.isJoinQual(expr)) {
+        joinGraph.addJoin(expr);
+      }
+    }
+
+    for (String table : joinGraph.getTables()) {
+
+    }
+
+    return plan;
+  }
+
+  private LogicalPlan branchAndBound(LogicalPlan plan, String table, JoinGraph graph) {
     return null;
   }
 

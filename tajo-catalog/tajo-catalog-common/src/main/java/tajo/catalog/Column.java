@@ -165,7 +165,7 @@ public class Column implements ProtoObject<ColumnProto>, Cloneable {
 	}
 	
 	public String toString() {
-	  return getQualifiedName() +" (" + getDataType()+")";
+	  return getColumnName();
 	}
 	
 	public String toJSON() {

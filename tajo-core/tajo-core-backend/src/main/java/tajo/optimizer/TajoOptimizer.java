@@ -23,7 +23,6 @@ import tajo.engine.eval.*;
 import tajo.engine.eval.EvalNode.Type;
 import tajo.engine.parser.QueryBlock;
 import tajo.engine.planner.PlannerUtil;
-import tajo.engine.planner.logical.ExprType;
 import tajo.engine.planner.logical.JoinNode;
 import tajo.engine.planner.logical.LogicalNode;
 import tajo.engine.planner.logical.ScanNode;
@@ -110,7 +109,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         verifyRelation(relation);
         TableDesc desc = catalog.getTableDesc(relation.getName());
         RelationOp relationOp = plan.createLogicalOp(RelationOp.class);
-        relationOp.init(relation, desc.getMeta().getSchema());
+        relationOp.init(relation, desc.getMeta());
         plan.add(relationOp);
         return relationOp;
 
@@ -182,7 +181,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     candidate = enuemrator.enumerate(nextRemain);
     for (JoinNode joinNode : candidate) {
       System.out.print((i++) + " : ");
-      printJoinOrder(joinNode);
+      //printJoinOrder(joinNode);
       System.out.print("(cost: " + computeCost(joinNode) + ")");
       System.out.println();
     }
@@ -190,7 +189,7 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     System.out.println("=======================================");
     System.out.print("best plan: ");
-    printJoinOrder(bestPlan);
+    //printJoinOrder(bestPlan);
     System.out.print("(cost: " + computeCost(bestPlan) + ")");
 
     return null;
@@ -206,9 +205,9 @@ public class TajoOptimizer extends AbstractOptimizer {
       }
     }
 
-    for (String table : joinGraph.getTables()) {
 
-    }
+    JoinOrderAlgorithm algorithm = new GreedyHeuristic(catalog);
+    algorithm.findBestOrder(plan);
 
     return plan;
   }
@@ -325,20 +324,20 @@ public class TajoOptimizer extends AbstractOptimizer {
     return bestPlan;
   }
 
-  private void printJoinOrder(JoinNode joinNode) {
+  public static void printJoinOrder(JoinOp joinNode) {
     traverseJoinNode(joinNode);
   }
 
-  private void traverseJoinNode(LogicalNode node) {
-    if (node.getType() == ExprType.JOIN) {
-      JoinNode join = (JoinNode) node;
+  public static void traverseJoinNode(LogicalOp node) {
+    if (node.getType() == OpType.JOIN) {
+      JoinOp join = (JoinOp) node;
       System.out.print("(");
       traverseJoinNode(join.getOuterNode());
       System.out.print(",");
       traverseJoinNode(join.getInnerNode());
       System.out.print(")");
-    } else if (node.getType() == ExprType.SCAN) {
-      ScanNode scan = (ScanNode) node;
+    } else if (node.getType() == OpType.Relation) {
+      RelationOp scan = (RelationOp) node;
       System.out.print(scan.getTableId());
     }
   }

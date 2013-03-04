@@ -18,6 +18,7 @@ import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
 import tajo.algebra.Relation;
 import tajo.catalog.Schema;
+import tajo.catalog.TableMeta;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock.Target;
@@ -25,7 +26,7 @@ import tajo.util.TUtil;
 
 public class RelationOp extends LogicalOp {
 	@Expose private String rel_name;
-  @Expose private Schema schema;
+  @Expose private TableMeta meta;
   @Expose private String alias;
 	@Expose private EvalNode qual;
 	@Expose private Target[] targets;
@@ -34,22 +35,26 @@ public class RelationOp extends LogicalOp {
 		super(id, OpType.Relation);
 	}
 
-  public void init(Relation relation, Schema schema) {
+  public void init(Relation relation, TableMeta meta) {
     rel_name = relation.getName();
-    this.schema = schema;
+    this.meta = meta;
     if (relation.hasAlias()) {
       alias = relation.getAlias();
     }
-    setInSchema(schema);
-    setOutSchema(schema);
+    setInSchema(meta.getSchema());
+    setOutSchema(meta.getSchema());
   }
 	
 	public String getTableId() {
 	  return rel_name;
 	}
 
+  public TableMeta getMeta() {
+    return meta;
+  }
+
   public Schema getSchema() {
-    return this.schema;
+    return meta.getSchema();
   }
 	
 	public boolean hasAlias() {

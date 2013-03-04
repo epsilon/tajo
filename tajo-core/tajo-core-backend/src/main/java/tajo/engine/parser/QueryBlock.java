@@ -397,9 +397,8 @@ public class QueryBlock extends ParseTree {
     @Expose private EvalNode eval;
     @Expose private Column column;
     @Expose private String alias = null;
-    @Expose private int targetId;
 
-    public Target(EvalNode eval, int targetId) {
+    public Target(EvalNode eval) {
       this.eval = eval;
       if (eval.getType() == EvalNode.Type.AGG_FUNCTION &&
           eval.getValueType().length > 1) { // hack for partial result
@@ -407,11 +406,10 @@ public class QueryBlock extends ParseTree {
       } else {
         this.column = new Column(eval.getName(), eval.getValueType()[0]);
       }
-      this.targetId = targetId;
     }
 
-    public Target(final EvalNode eval, final String alias, int targetId) {
-      this(eval, targetId);
+    public Target(final EvalNode eval, final String alias) {
+      this(eval);
       this.alias = alias;
     }
 
@@ -433,10 +431,6 @@ public class QueryBlock extends ParseTree {
 
     public Column getColumnSchema() {
       return this.column;
-    }
-
-    public int getTargetId() {
-      return this.targetId;
     }
 
     public String toString() {

@@ -20,11 +20,7 @@ import tajo.algebra.Relation;
 import tajo.catalog.Schema;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.json.GsonCreator;
-import tajo.engine.parser.QueryBlock.FromTable;
 import tajo.engine.parser.QueryBlock.Target;
-import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.LogicalNode;
-import tajo.engine.planner.logical.LogicalNodeVisitor;
 import tajo.util.TUtil;
 
 public class RelationOp extends LogicalOp {
@@ -88,10 +84,6 @@ public class RelationOp extends LogicalOp {
 	  return this.targets;
 	}
 	
-	public String toString() {
-	  return toJSON();
-	}
-	
 	public String toJSON() {
 	  return GsonCreator.getInstance().toJson(this, LogicalOp.class);
 	}
@@ -147,5 +139,14 @@ public class RelationOp extends LogicalOp {
   @Override
   public void postOrder(LogicalOpVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public String[] getPlanString() {
+    StringBuilder sb = new StringBuilder("Scan on " + rel_name);
+    if (hasAlias()) {
+      sb.append(" as " + alias);
+    }
+    return new String[] {sb.toString()};
   }
 }

@@ -183,9 +183,9 @@ public class PlannerUtil {
           firstTargetId++;
         } else {
           for (AggFuncCallEval func : firstFuncs) {
+            firstTargetId++;
             func.setFirstPhase();
-            QueryBlock.Target
-                newTarget = new QueryBlock.Target(func, firstTargetId++);
+            QueryBlock.Target newTarget = new QueryBlock.Target(func);
             newTarget.setAlias("column_"+ firstTargetId);
 
 
@@ -478,7 +478,7 @@ public class PlannerUtil {
     FieldEval eval;
     for (int i = 0; i < schema.getColumnNum(); i++) {
       eval = new FieldEval(schema.getColumn(i));
-      targets[i] = new QueryBlock.Target(eval, i);
+      targets[i] = new QueryBlock.Target(eval);
     }
     return targets;
   }

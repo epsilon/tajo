@@ -26,8 +26,6 @@ import tajo.catalog.statistics.TableStat;
 import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
-import tajo.optimizer.annotated.LogicalOp;
-import tajo.optimizer.annotated.LogicalOpVisitor;
 import tajo.optimizer.annotated.LogicalPlan;
 
 public class TestTajoOptimizer {
@@ -106,9 +104,6 @@ public class TestTajoOptimizer {
 
     LogicalPlan plan = optimizer.optimize(expr);
 
-
     System.out.println(plan.toString());
-
   }
-
 }

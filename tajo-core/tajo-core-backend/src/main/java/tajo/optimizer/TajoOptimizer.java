@@ -19,13 +19,13 @@ import tajo.catalog.CatalogService;
 import tajo.catalog.Column;
 import tajo.catalog.TableDesc;
 import tajo.datum.DatumFactory;
-import tajo.engine.eval.BinaryEval;
-import tajo.engine.eval.ConstEval;
-import tajo.engine.eval.EvalNode;
+import tajo.engine.eval.*;
 import tajo.engine.eval.EvalNode.Type;
-import tajo.engine.eval.FieldEval;
+import tajo.engine.parser.QueryBlock;
 import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.*;
+import tajo.engine.planner.logical.JoinNode;
+import tajo.engine.planner.logical.LogicalNode;
+import tajo.engine.planner.logical.ScanNode;
 import tajo.optimizer.annotated.*;
 import tajo.util.TUtil;
 
@@ -53,8 +53,6 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     LogicalOp root = transform(plan, algebra);
     plan.setRoot(root);
-
-
     LogicalPlan rewritten = rewriteEngine.rewrite(plan);
 
     return plan;
@@ -68,7 +66,10 @@ public class TajoOptimizer extends AbstractOptimizer {
       case Projection:
         Projection projection = (Projection) expr;
         child = transform(plan, projection.getChild());
-        return child;
+        ProjectionOp projectionOp = createProjectionOp(plan, projection);
+        projectionOp.setChild(child);
+        plan.add(projectionOp);
+        return projectionOp;
 
       case RelationList:
         RelationList relationList = (RelationList) expr;
@@ -80,7 +81,10 @@ public class TajoOptimizer extends AbstractOptimizer {
         child = transform(plan, selection.getChild());
         EvalNode searchCondition = createEvalTree(plan, selection.getQual());
         SelectionOp selectionOp = plan.createLogicalOp(SelectionOp.class);
-        selectionOp.setQual(searchCondition);
+
+        EvalNode simplified = AlgebraicUtil.simplify(searchCondition);
+        EvalNode [] cnf = EvalTreeUtil.getConjNormalForm(simplified);
+        selectionOp.setQual(cnf);
         selectionOp.setChild(child);
         plan.add(selectionOp);
         return selectionOp;
@@ -125,6 +129,27 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
 
     return null;
+  }
+
+  private ProjectionOp createProjectionOp(LogicalPlan plan, Projection projection) throws VerifyException {
+    Target [] exprs = projection.getTargets();
+    QueryBlock.Target targets [] = new QueryBlock.Target[exprs.length];
+
+    for (int i = 0; i < exprs.length; i++) {
+      targets[i] = createTarget(plan, exprs[i]);
+    }
+
+    ProjectionOp projectionOp = plan.createLogicalOp(ProjectionOp.class);
+    projectionOp.init(targets);
+    return projectionOp;
+  }
+
+  public QueryBlock.Target createTarget(LogicalPlan plan, Target target) throws VerifyException {
+    if (target.hasAlias()) {
+      return new QueryBlock.Target(createEvalTree(plan, target.getExpr()), target.getAlias());
+    } else {
+      return new QueryBlock.Target(createEvalTree(plan, target.getExpr()));
+    }
   }
 
   private RelationListOp createRelationListNode(LogicalPlan plan, RelationList expr)

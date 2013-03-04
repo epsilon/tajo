@@ -15,6 +15,7 @@
 package tajo.optimizer.annotated;
 
 
+import com.google.gson.annotations.Expose;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
 import tajo.optimizer.VerifyException;
@@ -29,23 +30,23 @@ import java.util.Map;
  * not thread safe
  */
 public class LogicalPlan {
-  int rootId;
-  Map<String, Integer> blockGraph = new HashMap<String, Integer>();
-  Map<Integer, LogicalOp> nodes = new HashMap<Integer, LogicalOp>();
-  Map<String, Integer> relations = new HashMap<String, Integer>();
+  @Expose int rootId;
+  @Expose Map<String, Integer> blockGraph = new HashMap<String, Integer>();
+  @Expose Map<Integer, LogicalOp> nodes = new HashMap<Integer, LogicalOp>();
+  @Expose Map<String, Integer> relations = new HashMap<String, Integer>();
 
   /**
    * Each edge indicates a connection from a parent to children.
    * Unary operators (e.g., selection, projection, and so on) have one child.
    * Some binary operators (e.g., join, union and except) have two children.
    */
-  Map<Integer, List<Integer>> inEdges = new HashMap<Integer, List<Integer>>();
+  @Expose Map<Integer, List<Integer>> inEdges = new HashMap<Integer, List<Integer>>();
 
   /**
    * Each edge indicates a connection from a child to a parent.
    * In logical algebra, each child has only one parent.
    */
-  Map<Integer, Integer> outEdges = new HashMap<Integer, Integer>();
+  @Expose Map<Integer, Integer> outEdges = new HashMap<Integer, Integer>();
 
   private volatile int id;
   private static final Class [] defaultParams = new Class[] {Integer.class};
@@ -214,26 +215,33 @@ public class LogicalPlan {
     @Override
     public void visit(LogicalOp node) {
       if (node.getId() == rootId) {
-        width = 0;
+        width = 2;
         idToWidth.put(node.getId(), width);
       } else {
         int parentId = getParent(node.getId()).getId();
         if (idToWidth.containsKey(parentId)) {
           width = idToWidth.get(parentId);
-          width+=2;
+          width+=4;
           idToWidth.put(node.getId(), width);
         }
       }
 
-      sb.append(indent(width) + " " + node.getType() + "\n");
+      sb.append(indent(width, node.getPlanString()) + "\n");
     }
 
-    private String indent(int width) {
-      StringBuilder indent = new StringBuilder();
-      for (int i = 0; i < width; i++) {
-        indent.append(" ");
+    private String indent(int width, String [] planString) {
+      String firstLineIndent = new String(new char[width-2]).replace('\0', ' ');
+      String indent = new String(new char[width]).replace('\0', ' ');
+
+      StringBuilder sb = new StringBuilder();
+      sb.append(firstLineIndent).append(" -> ").append(planString[0]);
+
+      if (planString.length > 1) {
+        for (int i = 1; i < planString.length; i++) {
+          sb.append("\n   ").append(indent).append(planString[i]);
+        }
       }
-      return indent.toString();
+      return sb.toString();
     }
 
     public String getOutput() {

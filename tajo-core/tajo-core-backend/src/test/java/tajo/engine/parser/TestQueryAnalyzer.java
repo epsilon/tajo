@@ -649,7 +649,7 @@ public class TestQueryAnalyzer {
 
   @Test
   public void testTarget() throws CloneNotSupportedException {
-    QueryBlock.Target t1 = new QueryBlock.Target(new ConstEval(DatumFactory.createInt(5)), 0);
+    QueryBlock.Target t1 = new QueryBlock.Target(new ConstEval(DatumFactory.createInt(5)));
     QueryBlock.Target t2 = (QueryBlock.Target) t1.clone();
     assertEquals(t1,t2);
   }

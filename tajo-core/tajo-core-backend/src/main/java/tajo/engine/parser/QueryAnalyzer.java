@@ -633,7 +633,7 @@ public final class QueryAnalyzer {
       for (int i = 0; i < ast.getChildCount(); i++) {
         node = (CommonTree) ast.getChild(i);
         evalTree = createEvalTree(context, block, node);
-        targets[i] = new Target(evalTree, i);
+        targets[i] = new Target(evalTree);
         if (node.getChildCount() > 1) {
           alias = node.getChild(node.getChildCount() - 1).getChild(0).getText();
           targets[i].setAlias(alias);

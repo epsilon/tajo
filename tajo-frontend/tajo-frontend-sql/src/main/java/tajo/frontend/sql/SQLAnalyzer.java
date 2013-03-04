@@ -21,7 +21,6 @@ public class SQLAnalyzer {
   public Expr parse(String sql) throws SQLSyntaxError {
     ParsingContext context = new ParsingContext(sql);
     CommonTree tree = parseSQL(sql);
-    System.out.println(tree.toStringTree());
     return transform(context, tree);
   }
 

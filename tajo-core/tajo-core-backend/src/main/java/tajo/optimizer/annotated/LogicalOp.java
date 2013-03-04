@@ -19,20 +19,19 @@ package tajo.optimizer.annotated;
 
 import com.google.gson.annotations.Expose;
 import tajo.catalog.Schema;
-import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.LogicalNodeVisitor;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Logical Expression with Annotations
  */
 public abstract class LogicalOp implements Cloneable {
-  int id;
+  @Expose int id;
   @Expose private OpType type;
 	@Expose private Schema inputSchema;
 	@Expose private Schema outputSchema;
-  Map<String, Object> annotations;
+  @Expose Map<String, Object> annotations;
 	
 	protected LogicalOp(Integer id, OpType type) {
     this.id = id;
@@ -50,6 +49,20 @@ public abstract class LogicalOp implements Cloneable {
 	public OpType getType() {
 		return this.type;
 	}
+
+  public void putAnnotation(String name, Object annotation) {
+    if (annotations == null) {
+      annotations = new HashMap<String, Object>();
+    }
+    annotations.put(name, annotation);
+  }
+
+  public Object getAnnotation(String name) {
+    if (annotations == null) {
+      return null;
+    }
+    return annotations.get(name);
+  }
 
 	public void setType(OpType type) {
 		this.type = type;
@@ -100,4 +113,15 @@ public abstract class LogicalOp implements Cloneable {
 
   public abstract void preOrder(LogicalOpVisitor visitor);
   public abstract void postOrder(LogicalOpVisitor visitor);
+
+  public abstract String [] getPlanString();
+
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    for (String string : getPlanString()) {
+      sb.append(string).append("\n");
+    }
+
+    return sb.toString();
+  }
 }

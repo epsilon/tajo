@@ -14,6 +14,9 @@
 
 package tajo.optimizer.annotated;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RelationListOp extends LogicalOp {
   LogicalOp [] relations;
 
@@ -43,5 +46,27 @@ public class RelationListOp extends LogicalOp {
       relation.postOrder(visitor);
     }
     visitor.visit(this);
+  }
+
+  @Override
+  public String[] getPlanString() {
+    List<String> strings = new ArrayList<String>();
+    strings.add("Relation List");
+
+    StringBuilder sb = new StringBuilder("List: ");
+    for (int i = 0; i < relations.length; i++) {
+      RelationOp relationOp = (RelationOp) relations[i];
+      sb.append(relationOp.getTableId());
+
+      if (relationOp.hasAlias()) {
+        sb.append(" as " + relationOp.getAlias());
+      }
+      if( i < relations.length - 1) {
+        sb.append(",");
+      }
+    }
+
+    strings.add(sb.toString());
+    return strings.toArray(new String[strings.size()]);
   }
 }

@@ -42,4 +42,9 @@ public class TableSubQueryOp extends LogicalOp {
     op.postOrder(visitor);
     visitor.visit(this);
   }
+
+  @Override
+  public String[] getPlanString() {
+    return new String[] {"Subquery"};
+  }
 }

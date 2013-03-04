@@ -1,13 +1,7 @@
 /*
- * Copyright 2012 Database Lab., Korea Univ.
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,42 +14,40 @@
 
 package tajo.optimizer.annotated;
 
-import com.google.gson.annotations.Expose;
 import tajo.engine.eval.EvalNode;
-import tajo.engine.json.GsonCreator;
-import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.LogicalNode;
-import tajo.engine.planner.logical.UnaryNode;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SelectionOp extends UnaryOp implements Cloneable {
-	@Expose	private EvalNode qual;
 
 	public SelectionOp(Integer id) {
-		super(id, OpType.SELECTION);
+		super(id, OpType.Selection);
 	}
 
-  public void init(EvalNode qual) {
-    setQual(qual);
+  public void init(EvalNode [] cnf) {
+    setQual(cnf);
   }
 
-	public EvalNode getQual() {
-		return this.qual;
+	public EvalNode [] getQual() {
+		return (EvalNode []) getAnnotation("qual");
 	}
 
-	public void setQual(EvalNode qual) {
-		this.qual = qual;
+	public void setQual(EvalNode [] cnf) {
+		putAnnotation("qual", cnf);
 	}
   
   public String toString() {
-    return null;
+    StringBuilder sb = new StringBuilder();
+    sb.append("Selection\n  Search Cond: " + getQual());
+    return sb.toString();
   }
   
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof SelectionOp) {
       SelectionOp other = (SelectionOp) obj;
-      return super.equals(other) 
-          && this.qual.equals(other.qual)
+      return super.equals(other)
           && child.equals(other.child);
     } else {
       return false;
@@ -65,8 +57,25 @@ public class SelectionOp extends UnaryOp implements Cloneable {
   @Override
   public Object clone() throws CloneNotSupportedException {
     SelectionOp selNode = (SelectionOp) super.clone();
-    selNode.qual = (EvalNode) this.qual.clone();
     
     return selNode;
+  }
+
+  @Override
+  public String[] getPlanString() {
+    List<String> strings = new ArrayList<String>();
+
+    strings.add("Selection");
+    StringBuilder sb = new StringBuilder("Search Cond: ");
+    EvalNode [] predicates = getQual();
+    for (int i = 0; i < predicates.length; i++) {
+      sb.append(predicates[i].toString());
+      if( i < predicates.length - 1) {
+        sb.append(" AND ");
+      }
+    }
+    strings.add(sb.toString());
+
+    return strings.toArray(new String[strings.size()]);
   }
 }

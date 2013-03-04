@@ -20,10 +20,10 @@ package tajo.optimizer.annotated;
 import com.google.gson.annotations.Expose;
 import tajo.algebra.JoinType;
 import tajo.engine.eval.EvalNode;
-import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock;
-import tajo.engine.planner.logical.ExprType;
-import tajo.engine.planner.logical.LogicalNodeVisitor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Hyunsik Choi
@@ -89,11 +89,18 @@ public class JoinOp extends BinaryOp implements Cloneable {
     return join;
   }
 
+  @Override
+  public String[] getPlanString() {
+    List<String> strings = new ArrayList<String>();
+    strings.add("Join (type :" + joinType +")");
+    strings.add("\n  Join Cond: " + joinQual.toString());
+    return strings.toArray(new String[strings.size()]);
+  }
+
   public String toString() {
-    return "\"Join\": \"joinType\": \"" + joinType +"\""
-        + (joinQual != null ? ", \"qual\": " + joinQual : "")
-        + "\n\"out schema: " + getOutSchema()
-        + "\n\"in schema: " + getInSchema()
-    		+ "\n" + getOuterNode().toString() + " and " + getInnerNode();
+    StringBuilder sb = new StringBuilder();
+    sb.append("Join (type :" + joinType +")");
+    sb.append("Join Cond: " + joinQual.toString());
+    return sb.toString();
   }
 }

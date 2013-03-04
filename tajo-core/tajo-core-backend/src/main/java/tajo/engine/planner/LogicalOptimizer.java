@@ -691,7 +691,7 @@ public class LogicalOptimizer {
       for (int i = 0; i < evaluated.length; i++) {
         if (evaluated[i]) {
           Column col = getEvaluatedColumn(i);
-          updated[i] = new Target(new FieldEval(col), i);
+          updated[i] = new Target(new FieldEval(col));
         } else {
           updated[i] = (Target) targets[i].clone();
         }

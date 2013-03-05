@@ -47,8 +47,10 @@ public class RelationOp extends LogicalOp {
   public void init(TableMeta meta, String relationName) {
     this.meta = meta;
     rel_name = relationName;
-    setInSchema(meta.getSchema());
-    setOutSchema(meta.getSchema());
+    if (meta != null) { // TODO
+      setInSchema(meta.getSchema());
+      setOutSchema(meta.getSchema());
+    }
   }
 	
 	public String getName() {

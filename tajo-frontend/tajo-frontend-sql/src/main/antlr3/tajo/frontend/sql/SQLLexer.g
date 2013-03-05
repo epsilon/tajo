@@ -600,7 +600,10 @@ Unicode_Permitted_Identifier_Character  :
     ;
 
 //  Generate an Unexpected Token Error if any forbidden characters are used in a Unicode Identifier
-Unicode_Forbidden_Identifier_Characters  :  ( Unicode_Forbidden_Identifier_Character )+;
+Unicode_Forbidden_Identifier_Characters  :  ( Unicode_Forbidden_Identifier_Character )+
+{
+ $channel=HIDDEN;
+};
 
 fragment
 Unicode_Forbidden_Identifier_Character  :
@@ -1099,14 +1102,14 @@ Tajo_Identifier_Part   :  Simple_Latin_Letter | Digit | Underscore | Colon;
 ==============================================================================================
 */
 
-Space    :  ' '
+Space : ' '
 {
-	$channel=HIDDEN;
+	$channel = HIDDEN;
 };
 
-White_Space  :	( Control_Characters  | Extended_Control_Characters )+
+White_Space :	( Control_Characters  | Extended_Control_Characters )+
 {
-	$channel=HIDDEN;
+	$channel = HIDDEN;
 };
 
 

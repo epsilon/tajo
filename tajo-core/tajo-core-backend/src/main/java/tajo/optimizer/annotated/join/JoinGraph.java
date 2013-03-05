@@ -12,19 +12,19 @@
  * limitations under the License.
  */
 
-package tajo.optimizer.annotated;
+package tajo.optimizer.annotated.join;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import tajo.catalog.Column;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.eval.EvalTreeUtil;
+import tajo.optimizer.DotGraphObject;
 
 import java.util.*;
 
-public class JoinGraph {
-  private Map<String,List<Edge>> graph
-      = Maps.newHashMap();
+public class JoinGraph implements DotGraphObject {
+  private Map<String,List<JoinCondEdge>> graph = new HashMap<String, List<JoinCondEdge>>();
 
   public void addJoin(EvalNode node) {
     List<Column> left = EvalTreeUtil.findAllColumnRefs(node.getLeftExpr());
@@ -33,9 +33,9 @@ public class JoinGraph {
     String ltbName = left.get(0).getTableName();
     String rtbName = right.get(0).getTableName();
 
-    Edge l2r = new Edge(ltbName, rtbName, node);
-    Edge r2l = new Edge(rtbName, ltbName, node);
-    List<Edge> edges;
+    JoinCondEdge l2r = new JoinCondEdge(ltbName, rtbName, node);
+    JoinCondEdge r2l = new JoinCondEdge(rtbName, ltbName, node);
+    List<JoinCondEdge> edges;
     if (graph.containsKey(ltbName)) {
       edges = graph.get(ltbName);
     } else {
@@ -61,24 +61,24 @@ public class JoinGraph {
     return Collections.unmodifiableCollection(graph.keySet());
   }
 
-  public Collection<Edge> getEdges(String tableName) {
+  public Collection<JoinCondEdge> getEdges(String tableName) {
     return Collections.unmodifiableCollection(graph.get(tableName));
   }
 
-  public Collection<Edge> getUndirectEdges() {
-    Set<Edge> edges = new HashSet<Edge>();
+  public Collection<JoinCondEdge> getUndirectEdges() {
+    Set<JoinCondEdge> edges = new HashSet<JoinCondEdge>();
 
-    for (Edge edge : getAllEdges()) {
+    for (JoinCondEdge edge : getAllEdges()) {
       if (edge.getSrc().compareToIgnoreCase(edge.getTarget()) > 0) {
-        edges.add(new Edge(edge.getTarget(), edge.getSrc(), edge.getJoinQual()));
+        edges.add(new JoinCondEdge(edge.getTarget(), edge.getSrc(), edge.getJoinQual()));
       }
     }
     return edges;
   }
 
-  public Collection<Edge> getAllEdges() {
-    List<Edge> edges = Lists.newArrayList();
-    for (List<Edge> edgeList : graph.values()) {
+  public Collection<JoinCondEdge> getAllEdges() {
+    List<JoinCondEdge> edges = Lists.newArrayList();
+    for (List<JoinCondEdge> edgeList : graph.values()) {
       edges.addAll(edgeList);
     }
     return Collections.unmodifiableCollection(edges);
@@ -88,12 +88,13 @@ public class JoinGraph {
     return this.graph.size();
   }
 
+  @Override
   public String getDotGraph() {
-    Collection<Edge> undirectedEdges = getUndirectEdges();
+    Collection<JoinCondEdge> undirectedEdges = getUndirectEdges();
 
     StringBuilder sb = new StringBuilder();
     sb.append("graph G {\n");
-    for (Edge edge : undirectedEdges) {
+    for (JoinCondEdge edge : undirectedEdges) {
         sb.append("  ").append(edge.getSrc());
         sb.append(" -- ").append(edge.getTarget())
             .append(" [label=\"").append(edge.getJoinQual().toString()).append("\"];");

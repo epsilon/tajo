@@ -27,9 +27,7 @@ import tajo.engine.planner.logical.JoinNode;
 import tajo.engine.planner.logical.LogicalNode;
 import tajo.engine.planner.logical.ScanNode;
 import tajo.optimizer.annotated.*;
-import tajo.util.TUtil;
-
-import java.util.*;
+import tajo.optimizer.annotated.join.JoinGraph;
 
 public class TajoOptimizer extends AbstractOptimizer {
   private CatalogService catalog;
@@ -74,6 +72,11 @@ public class TajoOptimizer extends AbstractOptimizer {
         plan.add(projectionOp);
         return projectionOp;
 
+      case Sort:
+        Sort sort = (Sort) expr;
+        child = transform(plan, sort.getChild());
+        return child;
+
       case RelationList:
         RelationList relationList = (RelationList) expr;
         child = createRelationListNode(plan, relationList);
@@ -83,7 +86,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         Selection selection = (Selection) expr;
         child = transform(plan, selection.getChild());
         EvalNode searchCondition = createEvalTree(plan, selection.getQual());
-        SelectionOp selectionOp = plan.createLogicalOp(SelectionOp.class);
+        SelectionOp selectionOp = plan.createOperator(SelectionOp.class);
 
         EvalNode simplified = AlgebraicUtil.simplify(searchCondition);
         EvalNode [] cnf = EvalTreeUtil.getConjNormalForm(simplified);
@@ -98,7 +101,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         left = transform(plan, join.getLeft());
         right = transform(plan, join.getRight());
 
-        JoinOp joinOp = plan.createLogicalOp(JoinOp.class);
+        JoinOp joinOp = plan.createOperator(JoinOp.class);
         joinOp.setOuter(left);
         joinOp.setInner(right);
         plan.add(joinOp);
@@ -108,7 +111,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         Relation relation = (Relation) expr;
         verifyRelation(relation);
         TableDesc desc = catalog.getTableDesc(relation.getName());
-        RelationOp relationOp = plan.createLogicalOp(RelationOp.class);
+        RelationOp relationOp = plan.createOperator(RelationOp.class);
         if (relation.hasAlias()) {
           relationOp.init(desc.getMeta(), relation.getName(), relation.getAlias());
         } else {
@@ -123,7 +126,7 @@ public class TajoOptimizer extends AbstractOptimizer {
       case TableSubQuery:
         TableSubQuery tableSubQuery = (TableSubQuery) expr;
         child = transform(plan, tableSubQuery.getSubQuery());
-        TableSubQueryOp subQueryOp = plan.createLogicalOp(TableSubQueryOp.class);
+        TableSubQueryOp subQueryOp = plan.createOperator(TableSubQueryOp.class);
         subQueryOp.init(child, tableSubQuery.getName());
         plan.add(subQueryOp);
         return subQueryOp;
@@ -146,7 +149,7 @@ public class TajoOptimizer extends AbstractOptimizer {
       targets[i] = createTarget(plan, exprs[i]);
     }
 
-    ProjectionOp projectionOp = plan.createLogicalOp(ProjectionOp.class);
+    ProjectionOp projectionOp = plan.createOperator(ProjectionOp.class);
     projectionOp.init(targets);
     return projectionOp;
   }
@@ -167,36 +170,10 @@ public class TajoOptimizer extends AbstractOptimizer {
       relations[i] = (RelationOp) transform(plan, exprs[i]);
     }
 
-    RelationListOp relationListOp = plan.createLogicalOp(RelationListOp.class);
+    RelationListOp relationListOp = plan.createOperator(RelationListOp.class);
     relationListOp.init(relations);
     plan.add(relationListOp);
     return relationListOp;
-  }
-
-  private LogicalNode createImplicitJoinPlan(RelationList expr) throws OptimizationException {
-    Set<Expr> relSet = TUtil.newHashSet(expr.getRelations());
-    Set<Expr> nextRemain;
-    Set<JoinNode> enumerated = new HashSet<JoinNode>();
-    JoinNode bestPlan = null;
-    Collection<JoinNode> candidate;
-    int i = 1;
-    JoinEnumerator enuemrator = new RightDeepEnumerator();
-    nextRemain = new HashSet<Expr>(relSet);
-    candidate = enuemrator.enumerate(nextRemain);
-    for (JoinNode joinNode : candidate) {
-      System.out.print((i++) + " : ");
-      //printJoinOrder(joinNode);
-      System.out.print("(cost: " + computeCost(joinNode) + ")");
-      System.out.println();
-    }
-    bestPlan = (JoinNode) findBestPlan(candidate, bestPlan);
-
-    System.out.println("=======================================");
-    System.out.print("best plan: ");
-    //printJoinOrder(bestPlan);
-    System.out.print("(cost: " + computeCost(bestPlan) + ")");
-
-    return null;
   }
 
   private LogicalPlan findBestJoinOrder(LogicalPlan plan) {
@@ -214,137 +191,6 @@ public class TajoOptimizer extends AbstractOptimizer {
     algorithm.findBestOrder(plan);
 
     return plan;
-  }
-
-  private LogicalPlan branchAndBound(LogicalPlan plan, String table, JoinGraph graph) {
-    return null;
-  }
-
-  private interface JoinEnumerator {
-    Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException;
-  }
-
-  @SuppressWarnings("unused")
-  private class LeftDeepEnumerator implements JoinEnumerator {
-
-    @Override
-    public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
-      Set<JoinNode> enumerated = new HashSet<JoinNode>();
-      Set<Expr> nextRemain;
-      for (Expr rel : exprs) {
-        nextRemain = new HashSet<Expr>(exprs);
-        nextRemain.remove(rel);
-        enumerated.addAll(enumerateLeftDeepJoin(nextRemain, rel));
-      }
-
-      return enumerated;
-    }
-
-    private Collection<JoinNode> enumerateLeftDeepJoin(Set<Expr> remain, Expr rel)
-        throws OptimizationException {
-      List<JoinNode> enumerated = new ArrayList<JoinNode>();
-      if (remain.size() == 1) {
-//        enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
-//            transform(rel), transform(remain.iterator().next())));
-      } else {
-        Set<Expr> nextRemain;
-        for (Expr next : remain) {
-          nextRemain = new HashSet<Expr>(remain);
-          nextRemain.remove(next);
-          enumerated.addAll(createLeftDeepJoin(enumerateLeftDeepJoin(nextRemain, next), rel));
-        }
-      }
-
-      return enumerated;
-    }
-
-    private List<JoinNode> createLeftDeepJoin(Collection<JoinNode> enumerated, Expr inner) throws OptimizationException {
-      List<JoinNode> joins = new ArrayList<JoinNode>();
-      for (JoinNode join : enumerated) {
-        //joins.add(new JoinNode(JoinType.CROSS_JOIN, join, transform(inner)));
-      }
-      return joins;
-    }
-  }
-
-  private class RightDeepEnumerator implements JoinEnumerator {
-
-    @Override
-    public Collection<JoinNode> enumerate(Set<Expr> exprs) throws OptimizationException {
-      Set<JoinNode> enumerated = new HashSet<JoinNode>();
-      Set<Expr> nextRemain;
-      for (Expr rel : exprs) {
-        nextRemain = new HashSet<Expr>(exprs);
-        nextRemain.remove(rel);
-        enumerated.addAll(enumerateRightDeepJoin(rel, nextRemain));
-      }
-
-      return enumerated;
-    }
-
-    private Collection<JoinNode> enumerateRightDeepJoin(Expr rel, Set<Expr> remain)
-        throws OptimizationException {
-      List<JoinNode> enumerated = new ArrayList<JoinNode>();
-      if (remain.size() == 1) {
-        //enumerated.add(new JoinNode(JoinType.CROSS_JOIN,
-          //  transform(rel), transform(remain.iterator().next())));
-      } else {
-        Set<Expr> nextRemain;
-        for (Expr next : remain) {
-          nextRemain = new HashSet<Expr>(remain);
-          nextRemain.remove(next);
-          enumerated.addAll(createRightDeepJoin(rel, enumerateRightDeepJoin(next, nextRemain)));
-        }
-      }
-
-      return enumerated;
-    }
-
-    private List<JoinNode> createRightDeepJoin(Expr outer, Collection<JoinNode> enumerated) throws OptimizationException {
-      List<JoinNode> joins = new ArrayList<JoinNode>();
-      for (JoinNode join : enumerated) {
-        //joins.add(new JoinNode(JoinType.CROSS_JOIN, transform(outer), join));
-      }
-      return joins;
-    }
-  }
-
-  private LogicalNode findBestPlan(Collection<JoinNode> candidates, JoinNode bestCandidate) {
-    LogicalNode plan;
-    JoinNode bestPlan = bestCandidate;
-    for (JoinNode candidate : candidates) {
-      if (bestPlan == null) {
-        bestPlan = candidate;
-        continue;
-      }
-      plan = candidate;
-      //plan = pushdownSelection(candidate);
-      //plan = pushdownProjection(plan);
-      if (computeCost(plan) < computeCost(bestPlan)) {
-        bestPlan = (JoinNode) plan;
-      }
-    }
-
-    return bestPlan;
-  }
-
-  public static void printJoinOrder(JoinOp joinNode) {
-    traverseJoinNode(joinNode);
-    System.out.println();
-  }
-
-  public static void traverseJoinNode(LogicalOp node) {
-    if (node.getType() == OpType.JOIN) {
-      JoinOp join = (JoinOp) node;
-      System.out.print("(");
-      traverseJoinNode(join.getOuterNode());
-      System.out.print(",");
-      traverseJoinNode(join.getInnerNode());
-      System.out.print(")");
-    } else if (node.getType() == OpType.Relation) {
-      RelationOp scan = (RelationOp) node;
-      System.out.print(scan.getRelationId());
-    }
   }
 
   private LogicalNode createExplicitJoinPlan(Join join) {
@@ -437,7 +283,10 @@ public class TajoOptimizer extends AbstractOptimizer {
 
       // binary expressions
       case Like:
-        break;
+        LikeExpr like = (LikeExpr) expr;
+        FieldEval field = (FieldEval) createEvalTree(plan, like.getColumnRef());
+        ConstEval pattern = (ConstEval) createEvalTree(plan, like.getPattern());
+        return new LikeEval(like.isNot(), field, pattern);
 
       case Is:
         break;
@@ -476,6 +325,9 @@ public class TajoOptimizer extends AbstractOptimizer {
 
       case CaseWhen:
         break;
+
+      case ScalarSubQuery:
+        ScalarSubQuery scalarSubQuery = (ScalarSubQuery) expr;
 
       default:
     }

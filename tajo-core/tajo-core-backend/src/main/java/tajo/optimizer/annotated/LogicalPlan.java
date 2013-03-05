@@ -135,7 +135,7 @@ public class LogicalPlan {
     }
   }
 
-  public <T extends LogicalOp> T createLogicalOp(Class<T> clazz) {
+  public <T extends LogicalOp> T createOperator(Class<T> clazz) {
     T node;
     try {
       Constructor cons = clazz.getConstructor(defaultParams);

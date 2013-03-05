@@ -27,6 +27,10 @@ import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
 import tajo.optimizer.annotated.LogicalPlan;
+import tajo.util.FileUtil;
+
+import java.io.File;
+import java.io.IOException;
 
 public class TestTajoOptimizer {
   private static TajoTestingCluster util;
@@ -122,13 +126,43 @@ public class TestTajoOptimizer {
     System.out.println(plan.toString());
   }
 
+  @Test
+  public void testTPCHQ2Join() throws SQLSyntaxError, OptimizationException, IOException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse("select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part,supplier,partsupp,nation,region where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS' and s_nationkey = n_nationkey and n_regionkey = r_regionkey and r_name = 'c'");
 
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
 
   @Test
-  public void testTPCH5Join() throws SQLSyntaxError, OptimizationException {
+  public void testTPCHQ3Join() throws SQLSyntaxError, OptimizationException, IOException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse("select l_orderkey, o_orderdate, o_shippriority from customer,orders,lineitem where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < '1995-03-15' and l_shipdate > '1995-03-15'");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
+
+  @Test
+  public void testTPCHQ5Join() throws SQLSyntaxError, OptimizationException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
-        "select n_name from customer, orders, lineitem, supplier, nation, region where c_custkey = o_custkey and l_orderkey = o_orderkey and l_suppkey = s_suppkey and c_nationkey = s_nationkey and s_nationkey = n_nationkey and n_regionkey = r_regionkey and r_name = 'ASIA' and o_orderdate >= '1994-01-01' and o_orderdate < '1995-01-01'");
+        "select n_name from customer, orders, lineitem, supplier, nation, region " +
+        "where c_custkey = o_custkey and l_orderkey = o_orderkey and l_suppkey = s_suppkey " +
+            "and c_nationkey = s_nationkey and s_nationkey = n_nationkey " +
+            "and n_regionkey = r_regionkey and r_name = 'ASIA' " +
+            "and o_orderdate >= '1994-01-01' and o_orderdate < '1995-01-01'");
 
     System.out.println(expr);
 
@@ -143,7 +177,14 @@ public class TestTajoOptimizer {
   public void testTPCH7Join() throws SQLSyntaxError, OptimizationException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
-        "select n1.n_name as supp_nation, n2.n_name as cust_nation from supplier, lineitem, orders, customer, nation n1, nation n2 where s_suppkey = l_suppkey and o_orderkey = l_orderkey and c_custkey = o_custkey and s_nationkey = n1.n_nationkey and c_nationkey = n2.n_nationkey and ( (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY') or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE') ) and l_shipdate > '1995-01-01' and l_shipdate < '1996-12-31'");
+        "select supp_nation, cust_nation, l_year from (" +
+            "select n1.n_name as supp_nation, n2.n_name as cust_nation " +
+            "from supplier,lineitem,orders,customer,nation n1,nation n2 " +
+            "where s_suppkey = l_suppkey and o_orderkey = l_orderkey and c_custkey = o_custkey " +
+            "and s_nationkey = n1.n_nationkey and c_nationkey = n2.n_nationkey " +
+            "and ( (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY') " +
+              "or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE')) " +
+            "and l_shipdate > '1995-01-01' and l_shipdate < '1996-12-31') as shipping");
 
     System.out.println(expr);
 

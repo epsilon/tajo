@@ -12,11 +12,13 @@
  * limitations under the License.
  */
 
-package tajo.optimizer.annotated;
+package tajo.optimizer;
 
 import com.google.common.base.Preconditions;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.planner.PlannerUtil;
+import tajo.optimizer.annotated.*;
+import tajo.optimizer.annotated.join.JoinGraph;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,5 +87,25 @@ public class OptimizerUtil {
     }
 
     return joinGraph;
+  }
+
+  public static String buildJoinOrderToString(JoinOp joinNode) {
+    StringBuilder sb = new StringBuilder();
+    traverseJoinNode(sb, joinNode);
+    return sb.toString();
+  }
+
+  public static void traverseJoinNode(StringBuilder stringBuilder, LogicalOp node) {
+    if (node.getType() == OpType.JOIN) {
+      JoinOp join = (JoinOp) node;
+      stringBuilder.append("(");
+      traverseJoinNode(stringBuilder, join.getOuterNode());
+      stringBuilder.append(",");
+      traverseJoinNode(stringBuilder, join.getInnerNode());
+      stringBuilder.append(")");
+    } else if (node.getType() == OpType.Relation) {
+      RelationOp scan = (RelationOp) node;
+      stringBuilder.append(scan.getRelationId());
+    }
   }
 }

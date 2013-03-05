@@ -12,16 +12,16 @@
  * limitations under the License.
  */
 
-package tajo.optimizer.annotated;
+package tajo.optimizer.annotated.join;
 
 import tajo.engine.eval.EvalNode;
 
-public class Edge {
+public class JoinCondEdge {
   private String src;
   private String target;
   private EvalNode joinQual;
 
-  public Edge(String src, String target, EvalNode joinQual) {
+  public JoinCondEdge(String src, String target, EvalNode joinQual) {
     this.src = src;
     this.target = target;
     this.joinQual = joinQual;

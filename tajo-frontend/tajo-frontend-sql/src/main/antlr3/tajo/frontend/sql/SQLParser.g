@@ -189,9 +189,14 @@ non_join_query_primary
   ;
 
 simple_table
-options {k=1;}
+  options {k=1;}
   : query_specification
+  | explicit_table
   ;
+
+explicit_table
+	options {k=1;}
+	: TABLE table_or_query_name ;
 
 query_specification
   : SELECT setQualifier? selectList from_clause? where_clause? groupby_clause? having_clause?
@@ -207,8 +212,8 @@ insertStmt
   ;
 
 selectList
-  : Asterisk -> ^(SEL_LIST ALL)
-  | derivedColumn (Comma derivedColumn)* -> ^(SEL_LIST derivedColumn+)
+  : derivedColumn (Comma derivedColumn)* -> ^(SEL_LIST derivedColumn+)
+  | Asterisk -> ^(SEL_LIST ALL)
   ;
 
 setQualifier
@@ -312,6 +317,11 @@ named_columns_join
 table_primary
   : table_name ((AS)? a=identifier)? -> ^(TABLE table_name ($a)?)
   | t=derived_table (AS)? a=identifier-> ^(SUBQUERY $t $a)
+  ;
+
+table_or_query_name
+  : table_name
+  | identifier
   ;
 
 derived_table

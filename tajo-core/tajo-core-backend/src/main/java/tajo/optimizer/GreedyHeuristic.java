@@ -16,6 +16,8 @@ package tajo.optimizer;
 
 import tajo.catalog.CatalogService;
 import tajo.optimizer.annotated.*;
+import tajo.optimizer.annotated.join.JoinCondEdge;
+import tajo.optimizer.annotated.join.JoinGraph;
 
 import java.util.*;
 
@@ -60,7 +62,7 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
 
     // Get candidates from all relations to be joined
     List<RelationOp> candidates = getSortedCandidates(relationMap, relationSet);
-    JoinOp join = plan.createLogicalOp(JoinOp.class);
+    JoinOp join = plan.createOperator(JoinOp.class);
 
     RelationOp first = candidates.get(0); // Get the first candidate relation
     relationSet.remove(first.getRelationId()); // Remove the first candidate relation
@@ -74,8 +76,8 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
       // Get a set of relations that can be joined to the composite relation.
       Set<String> candidateName = new HashSet<String>();
       for (String joinedRelation : joinedRelNames) {
-        Collection<Edge> edges = joinGraph.getEdges(joinedRelation);
-        for (Edge edge : edges) {
+        Collection<JoinCondEdge> edges = joinGraph.getEdges(joinedRelation);
+        for (JoinCondEdge edge : edges) {
           if (!joinedRelNames.contains(edge.getTarget())) {
             candidateName.add(edge.getTarget());
           }
@@ -105,13 +107,13 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
         break;
       } else {
         // Otherwise, the least join becomes an outer one for the next join
-        join = plan.createLogicalOp(JoinOp.class);
+        join = plan.createOperator(JoinOp.class);
         join.setOuter(prev);
         prev = join;
       }
     }
 
-    TajoOptimizer.printJoinOrder(prev);
+    System.out.println(OptimizerUtil.buildJoinOrderToString(prev));
 
     return null;
   }

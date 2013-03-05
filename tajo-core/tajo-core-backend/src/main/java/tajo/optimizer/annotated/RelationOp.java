@@ -16,7 +16,6 @@ package tajo.optimizer.annotated;
 
 import com.google.common.base.Objects;
 import com.google.gson.annotations.Expose;
-import tajo.algebra.Relation;
 import tajo.catalog.Schema;
 import tajo.catalog.TableMeta;
 import tajo.engine.eval.EvalNode;
@@ -31,21 +30,28 @@ public class RelationOp extends LogicalOp {
 	@Expose private EvalNode qual;
 	@Expose private Target[] targets;
 
+  protected RelationOp(Integer id, OpType type) {
+    super(id, type);
+  }
+
+  @SuppressWarnings("unused")
 	public RelationOp(Integer id) {
 		super(id, OpType.Relation);
 	}
 
-  public void init(Relation relation, TableMeta meta) {
-    rel_name = relation.getName();
+  public void init(TableMeta meta, String relationName, String alias) {
+    init(meta, relationName);
+    this.alias = alias;
+  }
+
+  public void init(TableMeta meta, String relationName) {
     this.meta = meta;
-    if (relation.hasAlias()) {
-      alias = relation.getAlias();
-    }
+    rel_name = relationName;
     setInSchema(meta.getSchema());
     setOutSchema(meta.getSchema());
   }
 	
-	public String getTableId() {
+	public String getName() {
 	  return rel_name;
 	}
 
@@ -63,6 +69,14 @@ public class RelationOp extends LogicalOp {
 
   public String getAlias() {
     return alias;
+  }
+
+  public String getRelationId() {
+    if (alias != null) {
+      return alias;
+    } else {
+      return rel_name;
+    }
   }
 	
 	public boolean hasQual() {

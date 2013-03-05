@@ -18,17 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RelationListOp extends LogicalOp {
-  LogicalOp [] relations;
+  private RelationOp [] relations;
 
   public RelationListOp(Integer id) {
     super(id, OpType.RelationList);
   }
 
-  public void init(LogicalOp [] relations) {
+  public void init(RelationOp [] relations) {
     this.relations = relations;
   }
 
-  public LogicalOp [] getRelations() {
+  public RelationOp [] getRelations() {
     return this.relations;
   }
 
@@ -56,7 +56,7 @@ public class RelationListOp extends LogicalOp {
     StringBuilder sb = new StringBuilder("List: ");
     for (int i = 0; i < relations.length; i++) {
       RelationOp relationOp = (RelationOp) relations[i];
-      sb.append(relationOp.getTableId());
+      sb.append(relationOp.getName());
 
       if (relationOp.hasAlias()) {
         sb.append(" as " + relationOp.getAlias());

@@ -109,7 +109,11 @@ public class TajoOptimizer extends AbstractOptimizer {
         verifyRelation(relation);
         TableDesc desc = catalog.getTableDesc(relation.getName());
         RelationOp relationOp = plan.createLogicalOp(RelationOp.class);
-        relationOp.init(relation, desc.getMeta());
+        if (relation.hasAlias()) {
+          relationOp.init(desc.getMeta(), relation.getName(), relation.getAlias());
+        } else {
+          relationOp.init(desc.getMeta(), relation.getName());
+        }
         plan.add(relationOp);
         return relationOp;
 
@@ -157,10 +161,10 @@ public class TajoOptimizer extends AbstractOptimizer {
 
   private RelationListOp createRelationListNode(LogicalPlan plan, RelationList expr)
       throws OptimizationException {
-    LogicalOp [] relations = new LogicalOp[expr.size()];
+    RelationOp [] relations = new RelationOp[expr.size()];
     Expr [] exprs = expr.getRelations();
     for (int i = 0; i < expr.size(); i++) {
-      relations[i] = transform(plan, exprs[i]);
+      relations[i] = (RelationOp) transform(plan, exprs[i]);
     }
 
     RelationListOp relationListOp = plan.createLogicalOp(RelationListOp.class);
@@ -326,6 +330,7 @@ public class TajoOptimizer extends AbstractOptimizer {
 
   public static void printJoinOrder(JoinOp joinNode) {
     traverseJoinNode(joinNode);
+    System.out.println();
   }
 
   public static void traverseJoinNode(LogicalOp node) {
@@ -338,7 +343,7 @@ public class TajoOptimizer extends AbstractOptimizer {
       System.out.print(")");
     } else if (node.getType() == OpType.Relation) {
       RelationOp scan = (RelationOp) node;
-      System.out.print(scan.getTableId());
+      System.out.print(scan.getRelationId());
     }
   }
 

@@ -14,21 +14,18 @@
 
 package tajo.optimizer.annotated;
 
-public class TableSubQueryOp extends LogicalOp {
+public class TableSubQueryOp extends RelationOp {
   private LogicalOp op;
-  private String rel_name;
   public TableSubQueryOp(Integer id) {
     super(id, OpType.TableSubQuery);
   }
 
-
   public void init(LogicalOp op, String name) {
+    super.init(null, name);
     this.op = op;
-    this.rel_name = name;
-  }
 
-  public String getName() {
-    return rel_name;
+    this.setOutSchema(op.getOutSchema());
+    this.setInSchema(op.getOutSchema());
   }
 
   @Override

@@ -106,4 +106,51 @@ public class TestTajoOptimizer {
 
     System.out.println(plan.toString());
   }
+
+  @Test
+  public void testTPCH10Join() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select c_custkey, c_name, c_acctbal, n_name, c_address, c_phone, c_comment from customer, orders, lineitem, nation where c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate >= '1993-10-01' and o_orderdate < '1994-01-01' and l_returnflag = 'R' and c_nationkey = n_nationkey");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
+
+
+
+  @Test
+  public void testTPCH5Join() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select n_name from customer, orders, lineitem, supplier, nation, region where c_custkey = o_custkey and l_orderkey = o_orderkey and l_suppkey = s_suppkey and c_nationkey = s_nationkey and s_nationkey = n_nationkey and n_regionkey = r_regionkey and r_name = 'ASIA' and o_orderdate >= '1994-01-01' and o_orderdate < '1995-01-01'");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
+
+  @Test
+  public void testTPCH7Join() throws SQLSyntaxError, OptimizationException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select n1.n_name as supp_nation, n2.n_name as cust_nation from supplier, lineitem, orders, customer, nation n1, nation n2 where s_suppkey = l_suppkey and o_orderkey = l_orderkey and c_custkey = o_custkey and s_nationkey = n1.n_nationkey and c_nationkey = n2.n_nationkey and ( (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY') or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE') ) and l_shipdate > '1995-01-01' and l_shipdate < '1996-12-31'");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
 }

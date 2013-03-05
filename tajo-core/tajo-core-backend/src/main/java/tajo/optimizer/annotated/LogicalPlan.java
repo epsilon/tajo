@@ -76,12 +76,12 @@ public class LogicalPlan {
           if (relationOp.hasAlias()) {
             relations.put(relationOp.getAlias(), relationOp.getId());
           } else {
-            relations.put(relationOp.getTableId(), relationOp.getId());
+            relations.put(relationOp.getName(), relationOp.getId());
           }
           break;
         case RelationList:
           RelationListOp relList = (RelationListOp) node;
-          for (LogicalOp rel : relList.relations) {
+          for (LogicalOp rel : relList.getRelations()) {
             connect(rel.getId(), relList.getId());
           }
         case ScalarSubQuery:
@@ -151,7 +151,7 @@ public class LogicalPlan {
     RelationOp relationOp = (RelationOp) nodes.get(relations.get(relName));
     Schema schema = relationOp.getSchema();
 
-    String qualifiedName = relationOp.getTableId() + "." + name;
+    String qualifiedName = relationOp.getName() + "." + name;
     if (!schema.contains(qualifiedName)) {
       throw new VerifyException("ERROR: no such a column "+ name);
     }
@@ -174,7 +174,7 @@ public class LogicalPlan {
     for (Integer relId : relations.values()) {
       RelationOp rel = (RelationOp) nodes.get(relId);
 
-      String qualifiedName = rel.getTableId() + "." + name;
+      String qualifiedName = rel.getName() + "." + name;
       if (rel.getSchema().contains(qualifiedName)) {
         if (cnt > 0) {
           throw new VerifyException("ERROR: column name "+ name + " is ambiguous");

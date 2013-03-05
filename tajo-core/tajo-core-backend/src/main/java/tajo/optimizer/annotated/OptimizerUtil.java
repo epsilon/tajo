@@ -15,6 +15,8 @@
 package tajo.optimizer.annotated;
 
 import com.google.common.base.Preconditions;
+import tajo.engine.eval.EvalNode;
+import tajo.engine.planner.PlannerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,5 +74,16 @@ public class OptimizerUtil {
     public List<LogicalOp> getFoundNodes() {
       return list;
     }
+  }
+
+  public static JoinGraph createJoinGraph(EvalNode [] cnf) {
+    JoinGraph joinGraph = new JoinGraph();
+    for (EvalNode expr : cnf) {
+      if (PlannerUtil.isJoinQual(expr)) {
+        joinGraph.addJoin(expr);
+      }
+    }
+
+    return joinGraph;
   }
 }

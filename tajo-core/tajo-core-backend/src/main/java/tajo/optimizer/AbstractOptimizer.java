@@ -18,7 +18,7 @@ import tajo.algebra.Expr;
 import tajo.optimizer.annotated.LogicalPlan;
 
 public abstract class AbstractOptimizer {
-  public abstract LogicalPlan optimize(Expr algebra) throws OptimizationException;
+  public abstract LogicalPlan optimize(Expr algebra) throws OptimizationException, VerifyException;
 
   /**
    * Should check the following:

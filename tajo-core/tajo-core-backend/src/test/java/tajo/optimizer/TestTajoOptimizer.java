@@ -27,10 +27,6 @@ import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
 import tajo.optimizer.annotated.LogicalPlan;
-import tajo.util.FileUtil;
-
-import java.io.File;
-import java.io.IOException;
 
 public class TestTajoOptimizer {
   private static TajoTestingCluster util;
@@ -84,7 +80,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testSubQuery() throws SQLSyntaxError, OptimizationException {
+  public void testSubQuery() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select l_orderkey from lineitem l inner join (select p_partkey from part)  p on l.l_partkey = p.partkey");
@@ -97,7 +93,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testJoin() throws SQLSyntaxError, OptimizationException {
+  public void testJoin() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select l_orderkey, o_orderdate, o_shippriority from customer, orders, lineitem where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < '1995-03-15' and l_shipdate > '1995-03-15'");
@@ -112,7 +108,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testTPCH10Join() throws SQLSyntaxError, OptimizationException {
+  public void testTPCH10Join() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select c_custkey, c_name, c_acctbal, n_name, c_address, c_phone, c_comment from customer, orders, lineitem, nation where c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate >= '1993-10-01' and o_orderdate < '1994-01-01' and l_returnflag = 'R' and c_nationkey = n_nationkey");
@@ -127,7 +123,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testTPCHQ2Join() throws SQLSyntaxError, OptimizationException, IOException {
+  public void testTPCHQ2Join() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse("select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part,supplier,partsupp,nation,region where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS' and s_nationkey = n_nationkey and n_regionkey = r_regionkey and r_name = 'c'");
 
@@ -141,7 +137,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testTPCHQ3Join() throws SQLSyntaxError, OptimizationException, IOException {
+  public void testTPCHQ3Join() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse("select l_orderkey, o_orderdate, o_shippriority from customer,orders,lineitem where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < '1995-03-15' and l_shipdate > '1995-03-15'");
 
@@ -155,7 +151,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testTPCHQ5Join() throws SQLSyntaxError, OptimizationException {
+  public void testTPCHQ5Join() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select n_name from customer, orders, lineitem, supplier, nation, region " +
@@ -174,7 +170,7 @@ public class TestTajoOptimizer {
   }
 
   @Test
-  public void testTPCH7Join() throws SQLSyntaxError, OptimizationException {
+  public void testTPCH7Join() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select supp_nation, cust_nation, l_year from (" +

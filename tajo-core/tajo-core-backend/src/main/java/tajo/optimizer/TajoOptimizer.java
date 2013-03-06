@@ -42,8 +42,10 @@ public class TajoOptimizer extends AbstractOptimizer {
     this.rewriteEngine = new QueryRewriteEngine(catalog);
   }
 
+  private static String ROOT_BLOCK="$ROOT";
+
   @Override
-  public LogicalPlan optimize(Expr algebra) throws OptimizationException {
+  public LogicalPlan optimize(Expr algebra) throws VerifyException {
 
     LogicalPlan plan = new LogicalPlan();
 
@@ -59,39 +61,39 @@ public class TajoOptimizer extends AbstractOptimizer {
     return optimized;
   }
 
-  public LogicalOp transform(LogicalPlan plan, Expr expr) throws OptimizationException {
-    LogicalOp child;
+  public LogicalOp transform(LogicalPlan plan, Expr expr) throws VerifyException {
+    LogicalOp childOp;
     LogicalOp left;
     LogicalOp right;
     switch (expr.getType()) {
       case Projection:
         Projection projection = (Projection) expr;
-        child = transform(plan, projection.getChild());
+        childOp = transform(plan, projection.getChild());
         ProjectionOp projectionOp = createProjectionOp(plan, projection);
-        projectionOp.setChild(child);
+        connect(projectionOp, childOp);
         plan.add(projectionOp);
         return projectionOp;
 
       case Sort:
         Sort sort = (Sort) expr;
-        child = transform(plan, sort.getChild());
-        return child;
+        childOp = transform(plan, sort.getChild());
+        return childOp;
 
       case RelationList:
         RelationList relationList = (RelationList) expr;
-        child = createRelationListNode(plan, relationList);
-        return child;
+        childOp = createRelationListNode(plan, relationList);
+        return childOp;
 
       case Selection:
         Selection selection = (Selection) expr;
-        child = transform(plan, selection.getChild());
+        childOp = transform(plan, selection.getChild());
         EvalNode searchCondition = createEvalTree(plan, selection.getQual());
         SelectionOp selectionOp = plan.createOperator(SelectionOp.class);
 
         EvalNode simplified = AlgebraicUtil.simplify(searchCondition);
         EvalNode [] cnf = EvalTreeUtil.getConjNormalForm(simplified);
         selectionOp.setQual(cnf);
-        selectionOp.setChild(child);
+        connect(selectionOp, childOp);
         plan.add(selectionOp);
         return selectionOp;
 
@@ -102,8 +104,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         right = transform(plan, join.getRight());
 
         JoinOp joinOp = plan.createOperator(JoinOp.class);
-        joinOp.setOuter(left);
-        joinOp.setInner(right);
+        connect(joinOp, left, right);
         plan.add(joinOp);
         return joinOp;
 
@@ -125,9 +126,9 @@ public class TajoOptimizer extends AbstractOptimizer {
 
       case TableSubQuery:
         TableSubQuery tableSubQuery = (TableSubQuery) expr;
-        child = transform(plan, tableSubQuery.getSubQuery());
+        childOp = transform(plan, tableSubQuery.getSubQuery());
         TableSubQueryOp subQueryOp = plan.createOperator(TableSubQueryOp.class);
-        subQueryOp.init(child, tableSubQuery.getName());
+        subQueryOp.init(childOp, tableSubQuery.getName());
         plan.add(subQueryOp);
         return subQueryOp;
 
@@ -139,6 +140,18 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
 
     return null;
+  }
+
+  public static void connect(UnaryOp parent, LogicalOp op) {
+    parent.setChildOp(op);
+    op.setParentOp(parent);
+  }
+
+  public static void connect(BinaryOp parent, LogicalOp leftOp, LogicalOp rightOp) {
+    parent.setLeftOp(leftOp);
+    leftOp.setParentOp(parent);
+    parent.setRightOp(rightOp);
+    rightOp.setParentOp(parent);
   }
 
   private ProjectionOp createProjectionOp(LogicalPlan plan, Projection projection) throws VerifyException {
@@ -163,14 +176,17 @@ public class TajoOptimizer extends AbstractOptimizer {
   }
 
   private RelationListOp createRelationListNode(LogicalPlan plan, RelationList expr)
-      throws OptimizationException {
+      throws OptimizationException, VerifyException {
+
+    RelationListOp relationListOp = plan.createOperator(RelationListOp.class);
+
     RelationOp [] relations = new RelationOp[expr.size()];
     Expr [] exprs = expr.getRelations();
     for (int i = 0; i < expr.size(); i++) {
       relations[i] = (RelationOp) transform(plan, exprs[i]);
+      relations[i].setParentOp(relationListOp);
     }
 
-    RelationListOp relationListOp = plan.createOperator(RelationListOp.class);
     relationListOp.init(relations);
     plan.add(relationListOp);
     return relationListOp;

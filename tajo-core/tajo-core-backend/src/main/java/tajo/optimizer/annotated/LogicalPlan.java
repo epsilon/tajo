@@ -18,6 +18,7 @@ package tajo.optimizer.annotated;
 import com.google.gson.annotations.Expose;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
+import tajo.optimizer.OptimizationException;
 import tajo.optimizer.VerifyException;
 import tajo.util.TUtil;
 
@@ -31,9 +32,9 @@ import java.util.Map;
  */
 public class LogicalPlan {
   @Expose int rootId;
-  @Expose Map<String, Integer> blockGraph = new HashMap<String, Integer>();
+  @Expose Map<String, Integer> queryBlocks = new HashMap<String, Integer>();
   @Expose Map<Integer, LogicalOp> nodes = new HashMap<Integer, LogicalOp>();
-  @Expose Map<String, Integer> relations = new HashMap<String, Integer>();
+  @Expose Map<String, Integer> relationsPerQueryBlock = new HashMap<String, Integer>();
 
   /**
    * Each edge indicates a connection from a parent to children.
@@ -59,38 +60,54 @@ public class LogicalPlan {
     rootId = root.getId();
   }
 
+  /**
+   * Before adding to a logical plan, every operator should be a valid form.
+   * The valid form means that an unary operator has to have a child operator and
+   * a binary node has to have both left and right operators.
+   *
+   * @param op
+   */
+  private static void validate(LogicalOp op) {
+    if (op instanceof UnaryOp) {
+      UnaryOp unaryOp = (UnaryOp) op;
+      if (unaryOp.getChildOp() == null) {
+        throw new OptimizationException(unaryOp.getType()
+            + " has to have a child operator before added");
+      }
+    } else if (op instanceof BinaryOp) {
+      BinaryOp binaryOp = (BinaryOp) op;
+      if (binaryOp.getLeftOp() == null) {
+        throw new OptimizationException(binaryOp.getType()
+            + " has to have an outer operator before added");
+      }
+
+      if (binaryOp.getRightOp() == null) {
+        throw new OptimizationException(binaryOp.getType()
+            + " has to have an inner operator before added");
+      }
+    }
+  }
+
   public void add(LogicalOp node) {
+    validate(node);
     nodes.put(node.getId(), node);
 
-    if (node instanceof UnaryOp) {
-      UnaryOp unaryOp = (UnaryOp) node;
-      connect(unaryOp.child.getId(), unaryOp.getId());
-    } else if (node instanceof BinaryOp) {
-      BinaryOp binaryOp = (BinaryOp) node;
-      connect(binaryOp.getOuterNode().getId(), binaryOp.getId());
-      connect(binaryOp.getInnerNode().getId(), binaryOp.getId());
-    } else {
-      switch (node.getType()) {
-        case Relation:
-          RelationOp relationOp = (RelationOp) node;
-          if (relationOp.hasAlias()) {
-            relations.put(relationOp.getAlias(), relationOp.getId());
-          } else {
-            relations.put(relationOp.getName(), relationOp.getId());
-          }
-          break;
-        case RelationList:
-          RelationListOp relList = (RelationListOp) node;
-          for (LogicalOp rel : relList.getRelations()) {
-            connect(rel.getId(), relList.getId());
-          }
-        case ScalarSubQuery:
-          break;
-        case TableSubQuery:
-          TableSubQueryOp tableSubQuery = (TableSubQueryOp) node;
-          blockGraph.put(tableSubQuery.getName(), tableSubQuery.getId());
-          break;
-      }
+    // if an added operator is a relation, add it to relation set.
+    switch (node.getType()) {
+      case Relation:
+        RelationOp relationOp = (RelationOp) node;
+        if (relationOp.hasAlias()) {
+          relationsPerQueryBlock.put(relationOp.getAlias(), relationOp.getId());
+        } else {
+          relationsPerQueryBlock.put(relationOp.getName(), relationOp.getId());
+        }
+        break;
+
+      case TableSubQuery:
+        TableSubQueryOp tableSubQuery = (TableSubQueryOp) node;
+        relationsPerQueryBlock.put(tableSubQuery.getRelationId(), tableSubQuery.getId());
+        queryBlocks.put(tableSubQuery.getName(), tableSubQuery.getId());
+        break;
     }
   }
 
@@ -148,7 +165,7 @@ public class LogicalPlan {
   }
 
   public Column getColumn(String relName, String name) throws VerifyException {
-    RelationOp relationOp = (RelationOp) nodes.get(relations.get(relName));
+    RelationOp relationOp = (RelationOp) nodes.get(relationsPerQueryBlock.get(relName));
     Schema schema = relationOp.getSchema();
 
     String qualifiedName = relationOp.getName() + "." + name;
@@ -171,7 +188,7 @@ public class LogicalPlan {
   public Column getColumn(String name) throws VerifyException {
     Column candidate = null;
     int cnt = 0;
-    for (Integer relId : relations.values()) {
+    for (Integer relId : relationsPerQueryBlock.values()) {
       RelationOp rel = (RelationOp) nodes.get(relId);
 
       String qualifiedName = rel.getName() + "." + name;
@@ -218,7 +235,7 @@ public class LogicalPlan {
         width = 2;
         idToWidth.put(node.getId(), width);
       } else {
-        int parentId = getParent(node.getId()).getId();
+        int parentId = node.getParentOp().getId();
         if (idToWidth.containsKey(parentId)) {
           width = idToWidth.get(parentId);
           width+=4;

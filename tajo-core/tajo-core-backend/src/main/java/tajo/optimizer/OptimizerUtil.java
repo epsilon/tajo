@@ -99,9 +99,9 @@ public class OptimizerUtil {
     if (node.getType() == OpType.JOIN) {
       JoinOp join = (JoinOp) node;
       stringBuilder.append("(");
-      traverseJoinNode(stringBuilder, join.getOuterNode());
+      traverseJoinNode(stringBuilder, join.getLeftOp());
       stringBuilder.append(",");
-      traverseJoinNode(stringBuilder, join.getInnerNode());
+      traverseJoinNode(stringBuilder, join.getRightOp());
       stringBuilder.append(")");
     } else if (node.getType() == OpType.Relation) {
       RelationOp scan = (RelationOp) node;

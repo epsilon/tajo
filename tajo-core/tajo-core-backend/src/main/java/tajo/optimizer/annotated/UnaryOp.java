@@ -1,34 +1,25 @@
-/**
- * 
- */
 package tajo.optimizer.annotated;
 
-import com.google.gson.annotations.Expose;
 
-
-/**
- * @author Hyunsik Choi
- *
- */
 public abstract class UnaryOp extends LogicalOp implements Cloneable {
-	@Expose LogicalOp child;
+	LogicalOp childOp;
 
 	public UnaryOp(int id, OpType type) {
 		super(id, type);
 	}
 	
-	public void setChild(LogicalOp child) {
-		this.child = child;
+	public void setChildOp(LogicalOp child) {
+		this.childOp = child;
 	}
 	
-	public LogicalOp getSubNode() {
-		return this.child;
+	public LogicalOp getChildOp() {
+		return this.childOp;
 	}
 	
 	@Override
   public Object clone() throws CloneNotSupportedException {
 	  UnaryOp unary = (UnaryOp) super.clone();
-	  unary.child = (LogicalOp) (child == null ? null : child.clone());
+	  unary.childOp = (LogicalOp) (childOp == null ? null : childOp.clone());
 	  
 	  return unary;
 	}
@@ -36,12 +27,12 @@ public abstract class UnaryOp extends LogicalOp implements Cloneable {
   @Override
   public void preOrder(LogicalOpVisitor visitor) {
     visitor.visit(this);
-    child.preOrder(visitor);
+    childOp.preOrder(visitor);
   }
 
   @Override
   public void postOrder(LogicalOpVisitor visitor) {
-    child.postOrder(visitor);
+    childOp.postOrder(visitor);
     visitor.visit(this);
   }
 }

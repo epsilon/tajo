@@ -83,7 +83,7 @@ public class ProjectionOp extends UnaryOp {
 	    
 	    boolean b1 = super.equals(other);
 	    boolean b2 = Arrays.equals(targets, other.targets);
-	    boolean b3 = child.equals(other.child);
+	    boolean b3 = childOp.equals(other.childOp);
 	    
 	    return b1 && b2 && b3;
 	  } else {

@@ -17,7 +17,6 @@
  */
 package tajo.optimizer.annotated;
 
-import com.google.gson.annotations.Expose;
 import tajo.algebra.JoinType;
 import tajo.engine.eval.EvalNode;
 import tajo.engine.parser.QueryBlock;
@@ -25,14 +24,10 @@ import tajo.engine.parser.QueryBlock;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Hyunsik Choi
- * 
- */
 public class JoinOp extends BinaryOp implements Cloneable {
-  @Expose private JoinType joinType;
-  @Expose private EvalNode joinQual;
-  @Expose private QueryBlock.Target[] targets;
+  private JoinType joinType;
+  private EvalNode joinQual;
+  private QueryBlock.Target[] targets;
 
   public JoinOp(Integer id) {
     super(id, OpType.JOIN);

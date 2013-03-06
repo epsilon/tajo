@@ -67,7 +67,7 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
     RelationOp first = candidates.get(0); // Get the first candidate relation
     relationSet.remove(first.getRelationId()); // Remove the first candidate relation
 
-    join.setOuter(first); // Set the first candidate to a outer relation of the first join
+    join.setLeftOp(first); // Set the first candidate to a outer relation of the first join
     // Add the first candidate to the set of joined relations
     joinedRelNames.add(first.getRelationId());
 
@@ -98,7 +98,7 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
       }
 
       // Set the candidate to a inner relation and remove from the relation set.
-      prev.setInner(chosen);
+      prev.setRightOp(chosen);
       joinedRelNames.add(chosen.getRelationId());
       relationSet.remove(chosen.getRelationId());
 
@@ -108,7 +108,7 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
       } else {
         // Otherwise, the least join becomes an outer one for the next join
         join = plan.createOperator(JoinOp.class);
-        join.setOuter(prev);
+        join.setLeftOp(prev);
         prev = join;
       }
     }

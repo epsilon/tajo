@@ -42,7 +42,7 @@ public class SelectionOp extends UnaryOp implements Cloneable {
     if (obj instanceof SelectionOp) {
       SelectionOp other = (SelectionOp) obj;
       return super.equals(other)
-          && child.equals(other.child);
+          && childOp.equals(other.childOp);
     } else {
       return false;
     }

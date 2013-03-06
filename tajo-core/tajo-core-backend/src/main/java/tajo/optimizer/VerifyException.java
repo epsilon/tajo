@@ -14,7 +14,7 @@
 
 package tajo.optimizer;
 
-public class VerifyException extends OptimizationException {
+public class VerifyException extends Exception {
   public VerifyException(String message) {
     super(message);
   }

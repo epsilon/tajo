@@ -14,7 +14,7 @@
 
 package tajo.optimizer;
 
-public class OptimizationException extends Exception {
+public class OptimizationException extends RuntimeException {
   public OptimizationException(String message) {
     super(message);
   }

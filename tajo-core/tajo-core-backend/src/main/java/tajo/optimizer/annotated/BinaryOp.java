@@ -24,28 +24,26 @@ import com.google.gson.annotations.Expose;
  *
  */
 public abstract class BinaryOp extends LogicalOp implements Cloneable {
-	@Expose
-  LogicalOp outer = null;
-	@Expose
-  LogicalOp inner = null;
+	@Expose LogicalOp outer = null;
+	@Expose LogicalOp inner = null;
 
 	public BinaryOp(int id, OpType type) {
 		super(id, type);
 	}
 
-	public LogicalOp getOuterNode() {
+	public LogicalOp getLeftOp() {
 		return this.outer;
 	}
 
-	public void setOuter(LogicalOp op) {
+	public void setLeftOp(LogicalOp op) {
 		this.outer = op;
 	}
 
-	public LogicalOp getInnerNode() {
+	public LogicalOp getRightOp() {
 		return this.inner;
 	}
 
-	public void setInner(LogicalOp op) {
+	public void setRightOp(LogicalOp op) {
 		this.inner = op;
 	}
 

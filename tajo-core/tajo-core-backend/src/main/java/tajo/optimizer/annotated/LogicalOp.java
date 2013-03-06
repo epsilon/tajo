@@ -17,7 +17,6 @@
  */
 package tajo.optimizer.annotated;
 
-import com.google.gson.annotations.Expose;
 import tajo.catalog.Schema;
 
 import java.util.HashMap;
@@ -27,11 +26,12 @@ import java.util.Map;
  * Logical Expression with Annotations
  */
 public abstract class LogicalOp implements Cloneable {
-  @Expose int id;
-  @Expose private OpType type;
-	@Expose private Schema inputSchema;
-	@Expose private Schema outputSchema;
-  @Expose Map<String, Object> annotations;
+  int id;
+  LogicalOp parentOp;
+  private OpType type;
+	private Schema inputSchema;
+	private Schema outputSchema;
+  Map<String, Object> annotations;
 	
 	protected LogicalOp(Integer id, OpType type) {
     this.id = id;
@@ -49,6 +49,14 @@ public abstract class LogicalOp implements Cloneable {
 	public OpType getType() {
 		return this.type;
 	}
+
+  public LogicalOp getParentOp() {
+    return this.parentOp;
+  }
+
+  public void setParentOp(LogicalOp parentOp) {
+    this.parentOp = parentOp;
+  }
 
   public void putAnnotation(String name, Object annotation) {
     if (annotations == null) {

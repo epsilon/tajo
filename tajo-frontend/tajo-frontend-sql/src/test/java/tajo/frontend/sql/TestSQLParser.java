@@ -89,19 +89,18 @@ public class TestSQLParser {
     
     Tree groupby = ast.getChild(idx);
     int grpIdx = 0;
-    assertEquals(SQLParser.FIELD_NAME, groupby.getChild(grpIdx++).getType());
+    assertEquals(SQLParser.ORDINARY_GROUP, groupby.getChild(grpIdx++).getType());
     assertEquals(SQLParser.CUBE, groupby.getChild(grpIdx).getType());
     
     int cubeIdx = 0;
     Tree cube = groupby.getChild(grpIdx);
-    assertEquals(SQLParser.FIELD_NAME, cube.getChild(cubeIdx++).getType());
-    assertEquals(SQLParser.FIELD_NAME, cube.getChild(cubeIdx++).getType());
+    assertEquals(SQLParser.ORDINARY_GROUP, cube.getChild(cubeIdx++).getType());
     grpIdx++;
     assertEquals(SQLParser.ROLLUP, groupby.getChild(grpIdx).getType());
     
     int rollupIdx = 0;
     Tree rollup = groupby.getChild(grpIdx);
-    assertEquals(SQLParser.FIELD_NAME, rollup.getChild(rollupIdx++).getType());
+    assertEquals(SQLParser.ORDINARY_GROUP, rollup.getChild(rollupIdx++).getType());
     
     idx++;
     assertEquals(SQLParser.HAVING, ast.getChild(idx).getType());

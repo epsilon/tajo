@@ -31,7 +31,7 @@ public class OptimizerUtil {
    * @param type to find
    * @return a found logical node
    */
-  public static LogicalOp findTopNodeFromRootBlock(LogicalPlan node, OpType type) {
+  public static LogicalOp findTopNodeFromRootBlock(LogicalPlan node,OpType type) {
     Preconditions.checkNotNull(node);
     Preconditions.checkNotNull(type);
 

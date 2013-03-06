@@ -27,6 +27,10 @@ import tajo.frontend.sql.SQLAnalyzer;
 import tajo.frontend.sql.SQLSyntaxError;
 import tajo.master.TajoMaster;
 import tajo.optimizer.annotated.LogicalPlan;
+import tajo.util.FileUtil;
+
+import java.io.File;
+import java.io.IOException;
 
 public class TestTajoOptimizer {
   private static TajoTestingCluster util;
@@ -137,6 +141,20 @@ public class TestTajoOptimizer {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(
         "select c_custkey, c_name, c_acctbal, n_name, c_address, c_phone, c_comment from customer, orders, lineitem, nation where c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate >= '1993-10-01' and o_orderdate < '1994-01-01' and l_returnflag = 'R' and c_nationkey = n_nationkey");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan plan = optimizer.optimize(expr);
+
+    System.out.println(plan.toString());
+  }
+
+  @Test
+  public void testTPCHQ1() throws SQLSyntaxError, VerifyException, IOException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(FileUtil.readTextFile(new File("benchmark/tpch/q1.tql")));
 
     System.out.println(expr);
 

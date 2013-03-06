@@ -16,16 +16,15 @@ package tajo.optimizer.annotated;
 
 
 import tajo.algebra.ColumnReferenceExpr;
+import tajo.algebra.Projection;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
 import tajo.optimizer.OptimizationException;
+import tajo.optimizer.TajoOptimizer;
 import tajo.optimizer.VerifyException;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * not thread safe
@@ -36,6 +35,13 @@ public class LogicalPlan {
   private Map<String, Integer> queryBlocks = new HashMap<String, Integer>();
   private Map<String, Map<String, Integer>> relationsPerQueryBlock =
       new HashMap<String, Map<String, Integer>>();
+  private Map<String, Projection> projectionPerQueryBlock =
+      new HashMap<String, Projection>();
+  private Map<String, Schema> schemaPerQueryBlock =
+      new HashMap<String, Schema>();
+  private Map<String, ProjectionOp> projectionOpPerQueryBlock =
+      new HashMap<String, ProjectionOp>();
+  private Set<String> endFromClausePerBlock = new HashSet<String>();
 
   private volatile int sequenceId;
   private static final Class [] defaultParams = new Class[] {Integer.class};
@@ -76,6 +82,10 @@ public class LogicalPlan {
     }
   }
 
+  public void addProjection(String blockId, Projection projection) {
+    this.projectionPerQueryBlock.put(blockId, projection);
+  }
+
   private void addRelation(String blockId, String relationName, int id) {
     if (relationsPerQueryBlock.containsKey(blockId)) {
       relationsPerQueryBlock.get(blockId).put(relationName, id);
@@ -86,8 +96,24 @@ public class LogicalPlan {
     }
   }
 
-  public void add(String blockId, LogicalOp node) {
+  private boolean checkEndFromClause(String blockId, LogicalOp node) {
+    return !(node.getType() == OpType.Relation ||
+         node.getType() == OpType.RelationList ||
+         node.getType() == OpType.JOIN);
+  }
+
+  public void add(String blockId, LogicalOp node) throws VerifyException {
     validate(node);
+
+    if (!endFromClausePerBlock.contains(blockId)) {
+      if (checkEndFromClause(blockId, node)) {
+        endFromClausePerBlock.add(blockId);
+        ProjectionOp projectionOp = TajoOptimizer.createProjectionOp(this, blockId, null);
+        projectionOpPerQueryBlock.put(blockId, projectionOp);
+      }
+    }
+
+
     nodes.put(node.getId(), node);
 
     // if an added operator is a relation, add it to relation set.

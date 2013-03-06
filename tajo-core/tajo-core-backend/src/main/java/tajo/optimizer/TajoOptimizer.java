@@ -61,7 +61,9 @@ public class TajoOptimizer extends AbstractOptimizer {
 
       case Projection:
         Projection projection = (Projection) expr;
+        plan.addProjection(blockId, projection);
         childOp = transform(plan, blockId, projection.getChild());
+
         ProjectionOp projectionOp = createProjectionOp(plan, blockId, projection);
         projectionOp.setChildOp(childOp);
         connect(projectionOp, childOp);
@@ -84,7 +86,6 @@ public class TajoOptimizer extends AbstractOptimizer {
         connect(aggregationOp, childOp);
         plan.add(blockId, aggregationOp);
         return aggregationOp;
-
 
       case RelationList:
         RelationList relationList = (RelationList) expr;
@@ -204,7 +205,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     return sortOp;
   }
 
-  private ProjectionOp createProjectionOp(LogicalPlan plan, String blockId, Projection projection)
+  public static ProjectionOp createProjectionOp(LogicalPlan plan, String blockId, Projection projection)
       throws VerifyException {
     Target [] targets = projection.getTargets();
     QueryBlock.Target [] annotateTargets = annotateTargets(plan, blockId, targets);
@@ -214,7 +215,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     return projectionOp;
   }
 
-  private QueryBlock.Target [] annotateTargets(LogicalPlan plan, String blockId,
+  static QueryBlock.Target [] annotateTargets(LogicalPlan plan, String blockId,
                                                Target [] targets) throws VerifyException {
     QueryBlock.Target annotatedTargets [] = new QueryBlock.Target[targets.length];
 
@@ -224,7 +225,8 @@ public class TajoOptimizer extends AbstractOptimizer {
     return annotatedTargets;
   }
 
-  public QueryBlock.Target createTarget(LogicalPlan plan, String blockId, Target target) throws VerifyException {
+  public static QueryBlock.Target createTarget(LogicalPlan plan, String blockId, Target target)
+      throws VerifyException {
     if (target.hasAlias()) {
       return new QueryBlock.Target(createEvalTree(plan, blockId, target.getExpr()), target.getAlias());
     } else {
@@ -270,7 +272,8 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
   }
 
-  public EvalNode createEvalTree(LogicalPlan plan, String blockId, final Expr expr) throws VerifyException {
+  public static EvalNode createEvalTree(LogicalPlan plan, String blockId, final Expr expr)
+      throws VerifyException {
     switch(expr.getType()) {
 
       // constants
@@ -346,7 +349,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     return null;
   }
 
-  private Type exprTypeToEvalType(tajo.algebra.ExprType type) throws VerifyException {
+  private static Type exprTypeToEvalType(tajo.algebra.ExprType type) throws VerifyException {
     switch (type) {
       case And: return Type.AND;
       case Or: return Type.OR;

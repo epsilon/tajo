@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
+import tajo.algebra.Aggregation;
 import tajo.algebra.JoinType;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
@@ -248,7 +249,7 @@ public class QueryBlock extends ParseTree {
   }
 
   public static class GroupElement implements Cloneable {
-    @Expose private GroupType type;
+    @Expose private Aggregation.GroupType type;
     @Expose private Column [] columns;
 
     @SuppressWarnings("unused")
@@ -256,12 +257,12 @@ public class QueryBlock extends ParseTree {
       // for gson
     }
 
-    public GroupElement(GroupType type, Column [] columns) {
+    public GroupElement(Aggregation.GroupType type, Column [] columns) {
       this.type = type;
       this.columns = columns;
     }
 
-    public GroupType getType() {
+    public Aggregation.GroupType getType() {
       return this.type;
     }
 
@@ -284,13 +285,6 @@ public class QueryBlock extends ParseTree {
       }
       return groups;
     }
-  }
-
-  public static enum GroupType {
-    GROUPBY,
-    CUBE,
-    ROLLUP,
-    EMPTYSET
   }
 
   public static class JoinClause implements Cloneable {

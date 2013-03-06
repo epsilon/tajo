@@ -58,7 +58,7 @@ public class TestSQLAnalyzer {
     Expr expr = analyzer.parse(QUERIES[4]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
-    assertEquals(ExprType.Selection, projection.getChild().getType());
+    assertEquals(ExprType.Filter, projection.getChild().getType());
     Selection selection = (Selection) projection.getChild();
     assertEquals(ExprType.RelationList, selection.getChild().getType());
     RelationList join = (RelationList) selection.getChild();
@@ -121,7 +121,7 @@ public class TestSQLAnalyzer {
     assertEquals(ExprType.Aggregation, expr.getType());
     Aggregation aggregation = (Aggregation) expr;
     assertEquals(1, aggregation.getGroupSet().length);
-    assertEquals(GroupType.CUBE, aggregation.getGroupSet()[0].getType());
+    assertEquals(GroupType.Cube, aggregation.getGroupSet()[0].getType());
     GroupElement[] groups = aggregation.getGroupSet();
     assertEquals("name", groups[0].getColumns()[0].getName());
     assertEquals("age", groups[0].getColumns()[1].getName());
@@ -134,7 +134,7 @@ public class TestSQLAnalyzer {
     Aggregation aggregation = (Aggregation) expr;
 
     assertEquals(1, aggregation.getGroupSet().length);
-    assertEquals(GroupType.ROLLUP, aggregation.getGroupSet()[0].getType());
+    assertEquals(GroupType.Rollup, aggregation.getGroupSet()[0].getType());
     GroupElement [] groups = aggregation.getGroupSet();
     assertEquals("name", groups[0].getColumns()[0].getName());
     assertEquals("age", groups[0].getColumns()[1].getName());
@@ -148,14 +148,14 @@ public class TestSQLAnalyzer {
     assertEquals(3, aggregation.getGroupSet().length);
     int gid = 0;
     GroupElement group = aggregation.getGroupSet()[gid++];
-    assertEquals(GroupType.CUBE, group.getType());
+    assertEquals(GroupType.OrdinaryGroup, group.getType());
+    assertEquals("id", group.getColumns()[0].getName());
+    group = aggregation.getGroupSet()[gid++];
+    assertEquals(GroupType.Cube, group.getType());
     assertEquals("name", group.getColumns()[0].getName());
     group = aggregation.getGroupSet()[gid++];
-    assertEquals(GroupType.ROLLUP, group.getType());
+    assertEquals(GroupType.Rollup, group.getType());
     assertEquals("age", group.getColumns()[0].getName());
-    group = aggregation.getGroupSet()[gid++];
-    assertEquals(GroupType.GROUPBY, group.getType());
-    assertEquals("id", group.getColumns()[0].getName());
   }
 
   @Test
@@ -472,7 +472,7 @@ public class TestSQLAnalyzer {
     Expr expr = analyzer.parse(subQueries[1]);
     assertEquals(ExprType.Projection, expr.getType());
     Projection projection = (Projection) expr;
-    assertEquals(ExprType.Selection, projection.getChild().getType());
+    assertEquals(ExprType.Filter, projection.getChild().getType());
   }
 
   static final String [] setQualifier = {

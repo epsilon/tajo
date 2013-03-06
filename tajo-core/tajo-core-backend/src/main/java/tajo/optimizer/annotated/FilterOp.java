@@ -19,9 +19,9 @@ import tajo.engine.eval.EvalNode;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SelectionOp extends UnaryOp implements Cloneable {
+public class FilterOp extends UnaryOp implements Cloneable {
 
-	public SelectionOp(Integer id) {
+	public FilterOp(Integer id) {
 		super(id, OpType.Selection);
 	}
 
@@ -39,8 +39,8 @@ public class SelectionOp extends UnaryOp implements Cloneable {
   
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof SelectionOp) {
-      SelectionOp other = (SelectionOp) obj;
+    if (obj instanceof FilterOp) {
+      FilterOp other = (FilterOp) obj;
       return super.equals(other)
           && childOp.equals(other.childOp);
     } else {
@@ -50,13 +50,13 @@ public class SelectionOp extends UnaryOp implements Cloneable {
   
   @Override
   public Object clone() throws CloneNotSupportedException {
-    SelectionOp selNode = (SelectionOp) super.clone();
+    FilterOp selNode = (FilterOp) super.clone();
     
     return selNode;
   }
 
   @Override
-  public String[] getPlanString() {
+  public List<String> getPlanString() {
     List<String> strings = new ArrayList<String>();
 
     strings.add("Selection");
@@ -70,6 +70,6 @@ public class SelectionOp extends UnaryOp implements Cloneable {
     }
     strings.add(sb.toString());
 
-    return strings.toArray(new String[strings.size()]);
+    return strings;
   }
 }

@@ -21,6 +21,7 @@ public class SQLAnalyzer {
   public Expr parse(String sql) throws SQLSyntaxError {
     ParsingContext context = new ParsingContext(sql);
     CommonTree tree = parseSQL(sql);
+    System.out.println(tree.toStringTree());
     return transform(context, tree);
   }
 
@@ -437,36 +438,29 @@ public class SQLAnalyzer {
     } else {
       // the remain ones are grouping fields.
       Tree group;
-      List<ColumnReferenceExpr> columnRefs = new ArrayList<ColumnReferenceExpr>();
       ColumnReferenceExpr[] columns;
-      ColumnReferenceExpr column;
       List<GroupElement> groups = new ArrayList<GroupElement>();
       for (; idx < ast.getChildCount(); idx++) {
         group = ast.getChild(idx);
         switch (group.getType()) {
           case SQLParser.CUBE:
-            columns = parseColumnReferences((CommonTree) group);
-            GroupElement cube = new GroupElement(GroupType.CUBE, columns);
+            columns = parseColumnReferences((CommonTree) group.getChild(0));
+            GroupElement cube = new GroupElement(GroupType.Cube, columns);
             groups.add(cube);
             break;
 
           case SQLParser.ROLLUP:
-            columns = parseColumnReferences((CommonTree) group);
-            GroupElement rollup = new GroupElement(GroupType.ROLLUP, columns);
+            columns = parseColumnReferences((CommonTree) group.getChild(0));
+            GroupElement rollup = new GroupElement(GroupType.Rollup, columns);
             groups.add(rollup);
             break;
 
-          case SQLParser.FIELD_NAME:
-            column = checkAndGetColumnByAST(group);
-            columnRefs.add(column);
+          case SQLParser.ORDINARY_GROUP:
+            columns = parseColumnReferences((CommonTree) group);
+            GroupElement ordinaryGroup = new GroupElement(GroupType.OrdinaryGroup, columns);
+            groups.add(ordinaryGroup);
             break;
         }
-      }
-
-      if (columnRefs.size() > 0) {
-        ColumnReferenceExpr[] groupingFields = columnRefs.toArray(new ColumnReferenceExpr[columnRefs.size()]);
-        GroupElement g = new GroupElement(GroupType.GROUPBY, groupingFields);
-        groups.add(g);
       }
 
       clause.setGroups(groups.toArray(new GroupElement[groups.size()]));

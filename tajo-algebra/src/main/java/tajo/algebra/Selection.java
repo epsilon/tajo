@@ -26,7 +26,7 @@ public class Selection extends UnaryOperator implements JsonSerializable {
   private Expr search_condition;
 
   public Selection(Expr relation, Expr qual) {
-    super(ExprType.Selection);
+    super(ExprType.Filter);
     setChild(relation);
     search_condition = qual;
   }

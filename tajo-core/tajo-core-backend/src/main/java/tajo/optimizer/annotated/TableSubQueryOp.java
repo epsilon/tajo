@@ -14,6 +14,10 @@
 
 package tajo.optimizer.annotated;
 
+import tajo.util.TUtil;
+
+import java.util.List;
+
 public class TableSubQueryOp extends RelationOp {
   private LogicalOp op;
   public TableSubQueryOp(Integer id) {
@@ -41,7 +45,7 @@ public class TableSubQueryOp extends RelationOp {
   }
 
   @Override
-  public String[] getPlanString() {
-    return new String[] {"Subquery"};
+  public List<String> getPlanString() {
+    return TUtil.newList("Subquery");
   }
 }

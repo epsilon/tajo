@@ -31,7 +31,7 @@ public class OptimizerUtil {
    * @param type to find
    * @return a found logical node
    */
-  public static LogicalOp findTopNode(LogicalPlan node, OpType type) {
+  public static LogicalOp findTopNodeFromRootBlock(LogicalPlan node, OpType type) {
     Preconditions.checkNotNull(node);
     Preconditions.checkNotNull(type);
 
@@ -57,6 +57,11 @@ public class OptimizerUtil {
     public LogicalOpFinder(OpType[] type, boolean topmost) {
       this(type);
       this.topmost = topmost;
+    }
+
+    @Override
+    public boolean accept(LogicalOp node) {
+      return node.getType() != OpType.TableSubQuery;
     }
 
     @Override
@@ -105,7 +110,7 @@ public class OptimizerUtil {
       stringBuilder.append(")");
     } else if (node.getType() == OpType.Relation) {
       RelationOp scan = (RelationOp) node;
-      stringBuilder.append(scan.getRelationId());
+      stringBuilder.append(scan.getCanonicalName());
     }
   }
 }

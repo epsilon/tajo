@@ -15,6 +15,10 @@ public class Relation extends Expr {
     this(ExprType.Relation, relationName);
   }
 
+  public String getCanonicalName() {
+    return alias == null ? rel_name : alias;
+  }
+
   public String getName() {
     return rel_name;
   }

@@ -15,14 +15,14 @@
 package tajo.optimizer.annotated;
 
 
-import com.google.gson.annotations.Expose;
+import tajo.algebra.ColumnReferenceExpr;
 import tajo.catalog.Column;
 import tajo.catalog.Schema;
 import tajo.optimizer.OptimizationException;
 import tajo.optimizer.VerifyException;
-import tajo.util.TUtil;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,25 +31,13 @@ import java.util.Map;
  * not thread safe
  */
 public class LogicalPlan {
-  @Expose int rootId;
-  @Expose Map<String, Integer> queryBlocks = new HashMap<String, Integer>();
-  @Expose Map<Integer, LogicalOp> nodes = new HashMap<Integer, LogicalOp>();
-  @Expose Map<String, Integer> relationsPerQueryBlock = new HashMap<String, Integer>();
+  private int rootId;
+  private Map<Integer, LogicalOp> nodes = new HashMap<Integer, LogicalOp>();
+  private Map<String, Integer> queryBlocks = new HashMap<String, Integer>();
+  private Map<String, Map<String, Integer>> relationsPerQueryBlock =
+      new HashMap<String, Map<String, Integer>>();
 
-  /**
-   * Each edge indicates a connection from a parent to children.
-   * Unary operators (e.g., selection, projection, and so on) have one child.
-   * Some binary operators (e.g., join, union and except) have two children.
-   */
-  @Expose Map<Integer, List<Integer>> inEdges = new HashMap<Integer, List<Integer>>();
-
-  /**
-   * Each edge indicates a connection from a child to a parent.
-   * In logical algebra, each child has only one parent.
-   */
-  @Expose Map<Integer, Integer> outEdges = new HashMap<Integer, Integer>();
-
-  private volatile int id;
+  private volatile int sequenceId;
   private static final Class [] defaultParams = new Class[] {Integer.class};
 
   public LogicalPlan() {
@@ -88,7 +76,17 @@ public class LogicalPlan {
     }
   }
 
-  public void add(LogicalOp node) {
+  private void addRelation(String blockId, String relationName, int id) {
+    if (relationsPerQueryBlock.containsKey(blockId)) {
+      relationsPerQueryBlock.get(blockId).put(relationName, id);
+    } else {
+      Map<String, Integer> relations = new HashMap<String, Integer>();
+      relations.put(relationName, id);
+      relationsPerQueryBlock.put(blockId, relations);
+    }
+  }
+
+  public void add(String blockId, LogicalOp node) {
     validate(node);
     nodes.put(node.getId(), node);
 
@@ -96,35 +94,15 @@ public class LogicalPlan {
     switch (node.getType()) {
       case Relation:
         RelationOp relationOp = (RelationOp) node;
-        if (relationOp.hasAlias()) {
-          relationsPerQueryBlock.put(relationOp.getAlias(), relationOp.getId());
-        } else {
-          relationsPerQueryBlock.put(relationOp.getName(), relationOp.getId());
-        }
+        addRelation(blockId, relationOp.getCanonicalName(), relationOp.getId());
         break;
 
       case TableSubQuery:
         TableSubQueryOp tableSubQuery = (TableSubQueryOp) node;
-        relationsPerQueryBlock.put(tableSubQuery.getRelationId(), tableSubQuery.getId());
+        addRelation(blockId, tableSubQuery.getCanonicalName(), tableSubQuery.getId());
         queryBlocks.put(tableSubQuery.getName(), tableSubQuery.getId());
         break;
     }
-  }
-
-  public void connect(int child, int parent) {
-    checkEdge(child, parent);
-
-    if (inEdges.containsKey(parent)) {
-      inEdges.get(parent).add(child);
-    } else {
-      inEdges.put(parent, TUtil.newList(child));
-    }
-
-    if (outEdges.containsKey(child)) {
-      throw new IllegalArgumentException("This node (" + child
-          + ") already have a parent (" + parent + ")");
-    }
-    outEdges.put(child, parent);
   }
 
   public LogicalOp getRootOperator() {
@@ -133,6 +111,11 @@ public class LogicalPlan {
 
   public LogicalOp getOperator(int id) {
     return nodes.get(id);
+  }
+
+  public LogicalOp getBlockRoot(String blockId) {
+    int blockRootId = queryBlocks.get(blockId);
+    return nodes.get(blockRootId);
   }
 
   private void checkNode(LogicalOp op) {
@@ -156,7 +139,7 @@ public class LogicalPlan {
     T node;
     try {
       Constructor cons = clazz.getConstructor(defaultParams);
-      node = (T) cons.newInstance(new Object[] {id++});
+      node = (T) cons.newInstance(new Object[] {sequenceId++});
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -164,8 +147,22 @@ public class LogicalPlan {
     return node;
   }
 
-  public Column getColumn(String relName, String name) throws VerifyException {
-    RelationOp relationOp = (RelationOp) nodes.get(relationsPerQueryBlock.get(relName));
+  public Column findColumn(String blockId, String relName, String name)
+      throws VerifyException {
+
+    RelationOp relationOp = (RelationOp)
+        nodes.get(relationsPerQueryBlock.get(blockId).get(relName));
+
+    // if a column name is outside of this query block
+    if (relationOp == null) {
+      // TODO - nested query can only refer outer query block? or not?
+      for (Map<String, Integer> entry : relationsPerQueryBlock.values()) {
+        if (entry.containsKey(relName)) {
+          relationOp = (RelationOp) nodes.get(entry.get(relName));
+        }
+      }
+    }
+
     Schema schema = relationOp.getSchema();
 
     String qualifiedName = relationOp.getName() + "." + name;
@@ -179,39 +176,75 @@ public class LogicalPlan {
     } catch (CloneNotSupportedException e) {
       throw new RuntimeException(e);
     }
-    if (relationOp.hasAlias()) {
-      column.setName(relName + "." + column.getColumnName());
-    }
+
+    column.setName(relName + "." + column.getColumnName());
+
     return column;
   }
 
-  public Column getColumn(String name) throws VerifyException {
-    Column candidate = null;
-    int cnt = 0;
-    for (Integer relId : relationsPerQueryBlock.values()) {
-      RelationOp rel = (RelationOp) nodes.get(relId);
+  private Column findColumnFromRelationOp(RelationOp relation, String name) {
+    String qualifiedName = relation.getName() + "." + name;
+    Column candidate;
+    if (relation.getSchema().contains(qualifiedName)) {
+      try {
+        candidate = (Column) relation.getSchema().getColumn(qualifiedName).clone();
+      } catch (CloneNotSupportedException e) {
+        throw new RuntimeException(e);
+      }
+      candidate.setName(relation.getCanonicalName() + "." + name);
+      return candidate;
+    } else {
+      return null;
+    }
+  }
 
-      String qualifiedName = rel.getName() + "." + name;
-      if (rel.getSchema().contains(qualifiedName)) {
-        if (cnt > 0) {
-          throw new VerifyException("ERROR: column name "+ name + " is ambiguous");
-        }
-        cnt++;
-        try {
-          candidate = (Column) rel.getSchema().getColumn(qualifiedName).clone();
-        } catch (CloneNotSupportedException e) {
-          throw new RuntimeException(e);
-        }
-        if (rel.hasAlias()) {
-          candidate.setName(rel.getAlias() + "." + name);
+  public Column findColumn(String blockId, ColumnReferenceExpr columnRef) throws VerifyException {
+    if (columnRef.hasRelationName()) {
+      return findColumn(blockId, columnRef.getRelationName(), columnRef.getName());
+    } else {
+      return findColumn(blockId, columnRef.getName());
+    }
+  }
+
+  public Column findColumn(String blockId, String name) throws VerifyException {
+    List<Column> candidates = new ArrayList<Column>();
+    Column candidate = null;
+
+    // Try to find a column from the current query block
+    for (Integer relId : relationsPerQueryBlock.get(blockId).values()) {
+      RelationOp rel = (RelationOp) nodes.get(relId);
+      candidate = findColumnFromRelationOp(rel, name);
+      if (candidate != null) {
+        candidates.add(candidate);
+        if (candidates.size() > 1) {
+          break;
         }
       }
     }
-    if (candidate == null) {
-      throw new VerifyException("ERROR: no such a column "+ name);
+
+    // if a column is not found, try to find the column from outer blocks.
+    if (candidates.isEmpty()) {
+      // for each block
+      Outer: for (Map<String, Integer> entry : relationsPerQueryBlock.values()) {
+        for (Integer relId : entry.values()) {
+          RelationOp rel = (RelationOp) nodes.get(relId);
+          candidate = findColumnFromRelationOp(rel, name);
+          if (candidate != null) {
+            candidates.add(candidate);
+            if (candidates.size() > 1)
+              break Outer;
+          }
+        }
+      }
     }
 
-    return candidate;
+    if (candidates.isEmpty()) {
+      throw new VerifyException("ERROR: no such a column "+ name);
+    } else  if (candidates.size() > 1) {
+      throw new VerifyException("ERROR: column name "+ name + " is ambiguous");
+    }
+
+    return candidates.get(0);
   }
 
   public String toString() {
@@ -220,14 +253,15 @@ public class LogicalPlan {
     return vis.getOutput();
   }
 
-  public LogicalOp getParent(int id) {
-    return nodes.get(outEdges.get(id));
-  }
-
   private class Visitor implements LogicalOpVisitor {
     Map<Integer, Integer> idToWidth = new HashMap<Integer, Integer>();
     int width;
     StringBuilder sb = new StringBuilder();
+
+    @Override
+    public boolean accept(LogicalOp node) {
+      return true;
+    }
 
     @Override
     public void visit(LogicalOp node) {
@@ -246,16 +280,16 @@ public class LogicalPlan {
       sb.append(indent(width, node.getPlanString()) + "\n");
     }
 
-    private String indent(int width, String [] planString) {
+    private String indent(int width, List<String> planStrings) {
       String firstLineIndent = new String(new char[width-2]).replace('\0', ' ');
       String indent = new String(new char[width]).replace('\0', ' ');
 
       StringBuilder sb = new StringBuilder();
-      sb.append(firstLineIndent).append(" -> ").append(planString[0]);
+      sb.append(firstLineIndent).append(" -> ").append(planStrings.get(0));
 
-      if (planString.length > 1) {
-        for (int i = 1; i < planString.length; i++) {
-          sb.append("\n   ").append(indent).append(planString[i]);
+      if (planStrings.size() > 1) {
+        for (int i = 1; i < planStrings.size(); i++) {
+          sb.append("\n   ").append(indent).append(planStrings.get(i));
         }
       }
       return sb.toString();

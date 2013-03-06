@@ -60,12 +60,27 @@ public class TestSQLParser {
   }
   
   private final String groupbyQuery[] = {
+      "select col0, col1, col2, col3, sum(col4) as total, avg(col5) from base group by (col0, col1), (col2, col3)",
       "select col0, col1, col2, col3, sum(col4) as total, avg(col5) from base group by col0, cube (col1, col2), rollup(col3) having total > 100.0"
+
   };
+
+  @Test
+  public void testGroupByClause() {
+    Tree ast = parseQuery(groupbyQuery[0]);
+    assertEquals(SQLParser.SELECT, ast.getType());
+    int idx = 0;
+    assertEquals(SQLParser.FROM, ast.getChild(idx++).getType());
+    assertEquals(SQLParser.SEL_LIST, ast.getChild(idx++).getType());
+    assertEquals(SQLParser.GROUP_BY, ast.getChild(idx).getType());
+    assertEquals(2, ast.getChild(idx).getChildCount());
+    assertEquals(SQLParser.ORDINARY_GROUP, ast.getChild(idx).getChild(0).getType());
+    assertEquals(SQLParser.ORDINARY_GROUP, ast.getChild(idx).getChild(1).getType());
+  }
   
   @Test
   public void testCubeByClause() {
-    Tree ast = parseQuery(groupbyQuery[0]);
+    Tree ast = parseQuery(groupbyQuery[1]);
     assertEquals(SQLParser.SELECT, ast.getType());
     int idx = 0;    
     assertEquals(SQLParser.FROM, ast.getChild(idx++).getType());

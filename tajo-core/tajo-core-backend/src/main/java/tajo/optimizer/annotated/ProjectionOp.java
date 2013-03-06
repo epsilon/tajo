@@ -50,7 +50,7 @@ public class ProjectionOp extends UnaryOp {
   }
 
   @Override
-  public String [] getPlanString() {
+  public List<String> getPlanString() {
     List<String> strings = new ArrayList<String>();
     StringBuilder sb = new StringBuilder();
     sb.append("Projection: ");
@@ -73,7 +73,7 @@ public class ProjectionOp extends UnaryOp {
     if (getInSchema() != null) {
       strings.add("  in  schema: " + getInSchema().toString());
     }
-    return strings.toArray(new String[strings.size()]);
+    return strings;
   }
 	
 	@Override

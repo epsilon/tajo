@@ -48,6 +48,7 @@ tokens {
   NULL_ORDER;
   ORDER;
   ORDER_BY;
+  ORDINARY_GROUP;
   PARAM;
   PARAMS;
   SEL_LIST;
@@ -348,8 +349,16 @@ grouping_element
   ;
 
 ordinary_grouping_set
+  : c=grouping_column_reference -> ^(ORDINARY_GROUP $c)
+  | Left_Paren list=grouping_column_reference_list Right_Paren -> ^(ORDINARY_GROUP $list)
+  ;
+
+grouping_column_reference
   : column_reference
-  | Left_Paren! column_reference Right_Paren!
+  ;
+
+grouping_column_reference_list
+  : grouping_column_reference (Comma grouping_column_reference)* -> grouping_column_reference+
   ;
 
 rollup_list

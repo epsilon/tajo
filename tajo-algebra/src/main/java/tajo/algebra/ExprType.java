@@ -29,7 +29,7 @@ public enum ExprType {
   Join(Join.class),
   Projection(Projection.class),
   Rename,
-  Selection(Selection.class),
+  Filter(Selection.class),
   Sort(Sort.class),
   Union(SetOperation.class),
   Limit(Limit.class),

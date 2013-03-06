@@ -26,7 +26,7 @@ public enum OpType {
   CREATE_TABLE,
 	EXCEPT,
 	EXPRS,
-	GROUP_BY,
+  Aggregation,
 	INSERT_INTO,
 	INTERSECT,
   LIMIT,

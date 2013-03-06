@@ -33,9 +33,9 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
 
   @Override
   public LogicalPlan findBestOrder(LogicalPlan plan) {
-    SelectionOp selection = (SelectionOp) OptimizerUtil.findTopNode(plan, OpType.Selection);
+    FilterOp selection = (FilterOp) OptimizerUtil.findTopNodeFromRootBlock(plan, OpType.Selection);
 
-    RelationListOp relationList = (RelationListOp) OptimizerUtil.findTopNode(plan,
+    RelationListOp relationList = (RelationListOp) OptimizerUtil.findTopNodeFromRootBlock(plan,
         OpType.RelationList);
 
     // Build a join graph
@@ -52,8 +52,8 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
         relationSet.add(tableSubQuery.getName());
       } else if (op instanceof RelationOp) {
         RelationOp rel = (RelationOp) op;
-        relationMap.put(rel.getRelationId(), rel);
-        relationSet.add(rel.getRelationId());
+        relationMap.put(rel.getCanonicalName(), rel);
+        relationSet.add(rel.getCanonicalName());
       }
     }
 
@@ -65,11 +65,11 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
     JoinOp join = plan.createOperator(JoinOp.class);
 
     RelationOp first = candidates.get(0); // Get the first candidate relation
-    relationSet.remove(first.getRelationId()); // Remove the first candidate relation
+    relationSet.remove(first.getCanonicalName()); // Remove the first candidate relation
 
     join.setLeftOp(first); // Set the first candidate to a outer relation of the first join
     // Add the first candidate to the set of joined relations
-    joinedRelNames.add(first.getRelationId());
+    joinedRelNames.add(first.getCanonicalName());
 
     JoinOp prev = join;
     while(true) {
@@ -92,15 +92,15 @@ public class GreedyHeuristic implements JoinOrderAlgorithm {
       RelationOp chosen = null;
       for (int i = 0; i < candidates.size(); i++) {
         chosen = candidates.get(i);
-        if (relationSet.contains(chosen.getRelationId())) {
+        if (relationSet.contains(chosen.getCanonicalName())) {
           break;
         }
       }
 
       // Set the candidate to a inner relation and remove from the relation set.
       prev.setRightOp(chosen);
-      joinedRelNames.add(chosen.getRelationId());
-      relationSet.remove(chosen.getRelationId());
+      joinedRelNames.add(chosen.getCanonicalName());
+      relationSet.remove(chosen.getCanonicalName());
 
       // If the relation set is empty, stop this loop.
       if (relationSet.isEmpty()) {

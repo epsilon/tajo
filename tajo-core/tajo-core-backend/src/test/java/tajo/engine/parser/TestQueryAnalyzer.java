@@ -25,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tajo.TajoTestingCluster;
+import tajo.algebra.Aggregation;
 import tajo.algebra.JoinType;
 import tajo.benchmark.TPCH;
 import tajo.catalog.*;
@@ -38,7 +39,6 @@ import tajo.engine.eval.EvalNode;
 import tajo.engine.eval.EvalNode.Type;
 import tajo.engine.eval.TestEvalTree.TestSum;
 import tajo.engine.parser.QueryBlock.GroupElement;
-import tajo.engine.parser.QueryBlock.GroupType;
 import tajo.engine.parser.QueryBlock.JoinClause;
 import tajo.engine.query.exception.InvalidQueryException;
 
@@ -201,7 +201,7 @@ public class TestQueryAnalyzer {
     QueryBlock block = (QueryBlock) tree;
     assertTrue(block.hasGroupbyClause());
     assertEquals(1, block.getGroupByClause().getGroupSet().size());
-    assertEquals(GroupType.CUBE, block.getGroupByClause().
+    assertEquals(Aggregation.GroupType.Cube, block.getGroupByClause().
         getGroupSet().get(0).getType());
     List<GroupElement> groups = block.getGroupByClause().getGroupSet();
     assertEquals("people.name", groups.get(0).getColumns()[0].getQualifiedName());
@@ -215,7 +215,7 @@ public class TestQueryAnalyzer {
     QueryBlock block = (QueryBlock) tree;
     assertTrue(block.hasGroupbyClause());
     assertEquals(1, block.getGroupByClause().getGroupSet().size());
-    assertEquals(GroupType.ROLLUP, block.getGroupByClause().
+    assertEquals(Aggregation.GroupType.Rollup, block.getGroupByClause().
         getGroupSet().get(0).getType());
     List<GroupElement> groups = block.getGroupByClause().getGroupSet();
     assertEquals("people.name", groups.get(0).getColumns()[0].getQualifiedName());
@@ -231,13 +231,13 @@ public class TestQueryAnalyzer {
     assertEquals(3, block.getGroupByClause().getGroupSet().size());
     Iterator<GroupElement> it = block.getGroupByClause().getGroupSet().iterator();
     GroupElement group = it.next();
-    assertEquals(GroupType.CUBE, group.getType());    
+    assertEquals(Aggregation.GroupType.Cube, group.getType());
     assertEquals("people.name", group.getColumns()[0].getQualifiedName());
     group = it.next();
-    assertEquals(GroupType.ROLLUP, group.getType());    
+    assertEquals(Aggregation.GroupType.Rollup, group.getType());
     assertEquals("people.age", group.getColumns()[0].getQualifiedName());
     group = it.next();
-    assertEquals(GroupType.GROUPBY, group.getType());
+    assertEquals(Aggregation.GroupType.OrdinaryGroup, group.getType());
     assertEquals("people.id", group.getColumns()[0].getQualifiedName());
   }
   

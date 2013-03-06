@@ -19,10 +19,6 @@ package tajo.optimizer.annotated;
 
 import com.google.gson.annotations.Expose;
 
-/**
- * @author Hyunsik Choi
- *
- */
 public abstract class BinaryOp extends LogicalOp implements Cloneable {
 	@Expose LogicalOp outer = null;
 	@Expose LogicalOp inner = null;

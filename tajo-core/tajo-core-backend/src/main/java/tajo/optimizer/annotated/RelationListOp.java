@@ -49,7 +49,7 @@ public class RelationListOp extends LogicalOp {
   }
 
   @Override
-  public String[] getPlanString() {
+  public List<String> getPlanString() {
     List<String> strings = new ArrayList<String>();
     strings.add("Relation List");
 
@@ -67,6 +67,6 @@ public class RelationListOp extends LogicalOp {
     }
 
     strings.add(sb.toString());
-    return strings.toArray(new String[strings.size()]);
+    return strings;
   }
 }

@@ -20,6 +20,7 @@ package tajo.optimizer.annotated;
 import tajo.catalog.Schema;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,10 @@ public abstract class LogicalOp implements Cloneable {
 	public OpType getType() {
 		return this.type;
 	}
+
+  public boolean hasParent() {
+    return parentOp != null;
+  }
 
   public LogicalOp getParentOp() {
     return this.parentOp;
@@ -122,7 +127,7 @@ public abstract class LogicalOp implements Cloneable {
   public abstract void preOrder(LogicalOpVisitor visitor);
   public abstract void postOrder(LogicalOpVisitor visitor);
 
-  public abstract String [] getPlanString();
+  public abstract List<String> getPlanString();
 
   public String toString() {
     StringBuilder sb = new StringBuilder();

@@ -17,25 +17,17 @@ package tajo.optimizer;
 import tajo.algebra.*;
 import tajo.catalog.CatalogService;
 import tajo.catalog.Column;
+import tajo.catalog.SortSpec;
 import tajo.catalog.TableDesc;
 import tajo.datum.DatumFactory;
 import tajo.engine.eval.*;
 import tajo.engine.eval.EvalNode.Type;
 import tajo.engine.parser.QueryBlock;
-import tajo.engine.planner.PlannerUtil;
-import tajo.engine.planner.logical.JoinNode;
-import tajo.engine.planner.logical.LogicalNode;
-import tajo.engine.planner.logical.ScanNode;
 import tajo.optimizer.annotated.*;
-import tajo.optimizer.annotated.join.JoinGraph;
 
 public class TajoOptimizer extends AbstractOptimizer {
   private CatalogService catalog;
   private QueryRewriteEngine rewriteEngine;
-
-  private class OptimizationContext {
-
-  }
 
   public TajoOptimizer(CatalogService catalog) {
     this.catalog = catalog;
@@ -51,7 +43,7 @@ public class TajoOptimizer extends AbstractOptimizer {
 
     verify(algebra);
 
-    LogicalOp root = transform(plan, algebra);
+    LogicalOp root = transform(plan, ROOT_BLOCK, algebra);
     plan.setRoot(root);
 
     LogicalPlan rewritten = rewriteEngine.rewrite(plan);
@@ -61,51 +53,68 @@ public class TajoOptimizer extends AbstractOptimizer {
     return optimized;
   }
 
-  public LogicalOp transform(LogicalPlan plan, Expr expr) throws VerifyException {
+  public LogicalOp transform(LogicalPlan plan, String blockId, Expr expr) throws VerifyException {
     LogicalOp childOp;
     LogicalOp left;
     LogicalOp right;
     switch (expr.getType()) {
+
       case Projection:
         Projection projection = (Projection) expr;
-        childOp = transform(plan, projection.getChild());
-        ProjectionOp projectionOp = createProjectionOp(plan, projection);
+        childOp = transform(plan, blockId, projection.getChild());
+        ProjectionOp projectionOp = createProjectionOp(plan, blockId, projection);
+        projectionOp.setChildOp(childOp);
         connect(projectionOp, childOp);
-        plan.add(projectionOp);
+        plan.add(blockId, projectionOp);
+
         return projectionOp;
 
       case Sort:
         Sort sort = (Sort) expr;
-        childOp = transform(plan, sort.getChild());
-        return childOp;
+        childOp = transform(plan, blockId, sort.getChild());
+        SortOp sortOp = createSortOp(plan, blockId, sort);
+        connect(sortOp, childOp);
+        plan.add(blockId, sortOp);
+        return sortOp;
+
+      case Aggregation:
+        Aggregation aggregation = (Aggregation) expr;
+        childOp = transform(plan, blockId, aggregation.getChild());
+        AggregationOp aggregationOp = createAggregationOp(plan, blockId, aggregation);
+        connect(aggregationOp, childOp);
+        plan.add(blockId, aggregationOp);
+        return aggregationOp;
+
 
       case RelationList:
         RelationList relationList = (RelationList) expr;
-        childOp = createRelationListNode(plan, relationList);
+        childOp = createRelationListNode(plan, blockId, relationList);
         return childOp;
 
-      case Selection:
+      case Filter:
         Selection selection = (Selection) expr;
-        childOp = transform(plan, selection.getChild());
-        EvalNode searchCondition = createEvalTree(plan, selection.getQual());
-        SelectionOp selectionOp = plan.createOperator(SelectionOp.class);
+        childOp = transform(plan, blockId, selection.getChild());
+        EvalNode searchCondition = createEvalTree(plan, blockId, selection.getQual());
+        FilterOp filterOp = plan.createOperator(FilterOp.class);
 
         EvalNode simplified = AlgebraicUtil.simplify(searchCondition);
         EvalNode [] cnf = EvalTreeUtil.getConjNormalForm(simplified);
-        selectionOp.setQual(cnf);
-        connect(selectionOp, childOp);
-        plan.add(selectionOp);
-        return selectionOp;
+        filterOp.setQual(cnf);
+        filterOp.setInSchema(childOp.getOutSchema());
+        filterOp.setOutSchema(childOp.getOutSchema());
+        connect(filterOp, childOp);
+        plan.add(blockId, filterOp);
+        return filterOp;
 
       case Join:
         Join join = (Join) expr;
 
-        left = transform(plan, join.getLeft());
-        right = transform(plan, join.getRight());
+        left = transform(plan, blockId, join.getLeft());
+        right = transform(plan, blockId, join.getRight());
 
         JoinOp joinOp = plan.createOperator(JoinOp.class);
         connect(joinOp, left, right);
-        plan.add(joinOp);
+        plan.add(blockId, joinOp);
         return joinOp;
 
       case Relation:
@@ -118,7 +127,7 @@ public class TajoOptimizer extends AbstractOptimizer {
         } else {
           relationOp.init(desc.getMeta(), relation.getName());
         }
-        plan.add(relationOp);
+        plan.add(blockId, relationOp);
         return relationOp;
 
       // the below will has separate query blocks
@@ -126,10 +135,11 @@ public class TajoOptimizer extends AbstractOptimizer {
 
       case TableSubQuery:
         TableSubQuery tableSubQuery = (TableSubQuery) expr;
-        childOp = transform(plan, tableSubQuery.getSubQuery());
+        String subBlockId = tableSubQuery.getCanonicalName();
+        childOp = transform(plan, subBlockId, tableSubQuery.getSubQuery());
         TableSubQueryOp subQueryOp = plan.createOperator(TableSubQueryOp.class);
         subQueryOp.init(childOp, tableSubQuery.getName());
-        plan.add(subQueryOp);
+        plan.add(blockId, subQueryOp);
         return subQueryOp;
 
       case Union:
@@ -154,28 +164,75 @@ public class TajoOptimizer extends AbstractOptimizer {
     rightOp.setParentOp(parent);
   }
 
-  private ProjectionOp createProjectionOp(LogicalPlan plan, Projection projection) throws VerifyException {
-    Target [] exprs = projection.getTargets();
-    QueryBlock.Target targets [] = new QueryBlock.Target[exprs.length];
+  private AggregationOp createAggregationOp(LogicalPlan plan, String blockId,
+                                            Aggregation aggregation) throws VerifyException {
+    Aggregation.GroupElement [] groupElements = aggregation.getGroupSet();
+    QueryBlock.GroupElement annotatedElements [] = new QueryBlock.GroupElement[groupElements.length];
+    for (int i = 0; i < groupElements.length; i++) {
+      annotatedElements[i] = new QueryBlock.GroupElement(
+          groupElements[i].getType(), annotateColumnRef(plan, blockId, groupElements[i].getColumns()));
+    }
+    AggregationOp aggregationOp = plan.createOperator(AggregationOp.class);
+    aggregationOp.init(annotatedElements, annotateTargets(plan, blockId, aggregation.getTargets()));
+    return aggregationOp;
+  }
 
-    for (int i = 0; i < exprs.length; i++) {
-      targets[i] = createTarget(plan, exprs[i]);
+  private Column [] annotateColumnRef(LogicalPlan plan, String blockId,
+                                      ColumnReferenceExpr[] columnRefs)
+      throws VerifyException {
+    Column [] columns = new Column[columnRefs.length];
+    for (int i = 0; i < columnRefs.length; i++) {
+      columns[i] = plan.findColumn(blockId, columnRefs[i]);
     }
 
+    return columns;
+  }
+
+  private SortOp createSortOp(LogicalPlan plan, String blockId, Sort sort) throws VerifyException {
+    SortSpec [] annotatedSortSpecs = new SortSpec[sort.getSortSpecs().length];
+
+    Column column;
+    Sort.SortSpec[] sortSpecs = sort.getSortSpecs();
+    for (int i = 0; i < sort.getSortSpecs().length; i++) {
+      column = plan.findColumn(blockId, sortSpecs[i].getKey());
+      annotatedSortSpecs[i] = new SortSpec(column, sortSpecs[i].isAscending(),
+          sortSpecs[i].isNullFirst());
+    }
+
+    SortOp sortOp = plan.createOperator(SortOp.class);
+    sortOp.init(annotatedSortSpecs);
+    return sortOp;
+  }
+
+  private ProjectionOp createProjectionOp(LogicalPlan plan, String blockId, Projection projection)
+      throws VerifyException {
+    Target [] targets = projection.getTargets();
+    QueryBlock.Target [] annotateTargets = annotateTargets(plan, blockId, targets);
+
     ProjectionOp projectionOp = plan.createOperator(ProjectionOp.class);
-    projectionOp.init(targets);
+    projectionOp.init(annotateTargets);
     return projectionOp;
   }
 
-  public QueryBlock.Target createTarget(LogicalPlan plan, Target target) throws VerifyException {
+  private QueryBlock.Target [] annotateTargets(LogicalPlan plan, String blockId,
+                                               Target [] targets) throws VerifyException {
+    QueryBlock.Target annotatedTargets [] = new QueryBlock.Target[targets.length];
+
+    for (int i = 0; i < targets.length; i++) {
+      annotatedTargets[i] = createTarget(plan, blockId, targets[i]);
+    }
+    return annotatedTargets;
+  }
+
+  public QueryBlock.Target createTarget(LogicalPlan plan, String blockId, Target target) throws VerifyException {
     if (target.hasAlias()) {
-      return new QueryBlock.Target(createEvalTree(plan, target.getExpr()), target.getAlias());
+      return new QueryBlock.Target(createEvalTree(plan, blockId, target.getExpr()), target.getAlias());
     } else {
-      return new QueryBlock.Target(createEvalTree(plan, target.getExpr()));
+      return new QueryBlock.Target(createEvalTree(plan, blockId, target.getExpr()));
     }
   }
 
-  private RelationListOp createRelationListNode(LogicalPlan plan, RelationList expr)
+  private RelationListOp createRelationListNode(LogicalPlan plan, String blockId, RelationList expr)
       throws OptimizationException, VerifyException {
 
     RelationListOp relationListOp = plan.createOperator(RelationListOp.class);
@@ -183,85 +240,24 @@ public class TajoOptimizer extends AbstractOptimizer {
     RelationOp [] relations = new RelationOp[expr.size()];
     Expr [] exprs = expr.getRelations();
     for (int i = 0; i < expr.size(); i++) {
-      relations[i] = (RelationOp) transform(plan, exprs[i]);
+      relations[i] = (RelationOp) transform(plan, blockId, exprs[i]);
       relations[i].setParentOp(relationListOp);
     }
 
     relationListOp.init(relations);
-    plan.add(relationListOp);
+    plan.add(blockId, relationListOp);
     return relationListOp;
   }
 
   private LogicalPlan findBestJoinOrder(LogicalPlan plan) {
-    SelectionOp selectionOp = (SelectionOp) OptimizerUtil.findTopNode(plan, OpType.Selection);
-
-    JoinGraph joinGraph = new JoinGraph();
-    for (EvalNode expr : selectionOp.getQual()) {
-      if (PlannerUtil.isJoinQual(expr)) {
-        joinGraph.addJoin(expr);
-      }
+    RelationListOp relationList = (RelationListOp) OptimizerUtil.findTopNodeFromRootBlock(plan,
+        OpType.RelationList);
+    if (relationList != null) {
+      JoinOrderAlgorithm algorithm = new GreedyHeuristic(catalog);
+      algorithm.findBestOrder(plan);
     }
-
-
-    JoinOrderAlgorithm algorithm = new GreedyHeuristic(catalog);
-    algorithm.findBestOrder(plan);
 
     return plan;
-  }
-
-  private LogicalNode createExplicitJoinPlan(Join join) {
-    return null;
-  }
-
-  public double computeCost(LogicalNode optimized) {
-    return computeCostRecursive(optimized);
-  }
-
-  private double computeCostRecursive(LogicalNode plan) {
-    switch (plan.getType()) {
-      case JOIN:
-        JoinNode join = (JoinNode) plan;
-        double leftCost = computeCostRecursive(join.getOuterNode());
-        double rightCost = computeCostRecursive(join.getInnerNode());
-        return rightCost + (0.5 * leftCost) + (rightCost * 0.5);
-
-      case SCAN:
-        ScanNode scanNode = (ScanNode) plan;
-        TableDesc desc = catalog.getTableDesc(scanNode.getTableId());
-        return desc.getMeta().getStat().getNumBytes();
-
-      default:
-        return 0;
-    }
-  }
-
-  public class CostedPlan implements Comparable<CostedPlan> {
-    double cost;
-    LogicalNode plan;
-
-    public CostedPlan(LogicalNode plan) {
-      this.plan = plan;
-    }
-
-    public void setCost(double cost) {
-      this.cost = cost;
-    }
-
-    public double getCost() {
-      return this.cost;
-    }
-
-    @Override
-    public int compareTo(CostedPlan o) {
-      double compval = cost - o.cost;
-      if (compval < 0) {
-        return -1;
-      } else if (compval > 0) {
-        return 1;
-      } else {
-        return 0;
-      }
-    }
   }
 
   @Override
@@ -274,7 +270,7 @@ public class TajoOptimizer extends AbstractOptimizer {
     }
   }
 
-  public EvalNode createEvalTree(LogicalPlan plan, final Expr expr) throws VerifyException {
+  public EvalNode createEvalTree(LogicalPlan plan, String blockId, final Expr expr) throws VerifyException {
     switch(expr.getType()) {
 
       // constants
@@ -300,8 +296,8 @@ public class TajoOptimizer extends AbstractOptimizer {
       // binary expressions
       case Like:
         LikeExpr like = (LikeExpr) expr;
-        FieldEval field = (FieldEval) createEvalTree(plan, like.getColumnRef());
-        ConstEval pattern = (ConstEval) createEvalTree(plan, like.getPattern());
+        FieldEval field = (FieldEval) createEvalTree(plan, blockId, like.getColumnRef());
+        ConstEval pattern = (ConstEval) createEvalTree(plan, blockId, like.getPattern());
         return new LikeEval(like.isNot(), field, pattern);
 
       case Is:
@@ -322,16 +318,16 @@ public class TajoOptimizer extends AbstractOptimizer {
       case Mod:
         BinaryOperator bin = (BinaryOperator) expr;
         return new BinaryEval(exprTypeToEvalType(expr.getType()),
-            createEvalTree(plan, bin.getLeft()), createEvalTree(plan, bin.getRight()));
+            createEvalTree(plan, blockId, bin.getLeft()), createEvalTree(plan, blockId, bin.getRight()));
 
       // others
       case Column:
         ColumnReferenceExpr columnRef = (ColumnReferenceExpr) expr;
         Column column;
         if (columnRef.hasRelationName()) {
-          column = plan.getColumn(columnRef.getRelationName(), columnRef.getName());
+          column = plan.findColumn(blockId, columnRef.getRelationName(), columnRef.getName());
         } else {
-          column = plan.getColumn(columnRef.getName());
+          column = plan.findColumn(blockId, columnRef.getName());
         }
         return new FieldEval(column);
 

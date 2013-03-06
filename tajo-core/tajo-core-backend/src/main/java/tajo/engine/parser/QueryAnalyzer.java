@@ -30,6 +30,7 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import tajo.algebra.Aggregation;
 import tajo.algebra.JoinType;
 import tajo.catalog.*;
 import tajo.catalog.exception.NoSuchTableException;
@@ -676,13 +677,13 @@ public final class QueryAnalyzer {
         switch (group.getType()) {
           case NQLParser.CUBE:
             columns = parseColumnReferences(context, block, (CommonTree) group);
-            GroupElement cube = new GroupElement(GroupType.CUBE, columns);
+            GroupElement cube = new GroupElement(Aggregation.GroupType.Cube, columns);
             clause.addGroupSet(cube);
             break;
 
           case NQLParser.ROLLUP:
             columns = parseColumnReferences(context, block, (CommonTree) group);
-            GroupElement rollup = new GroupElement(GroupType.ROLLUP, columns);
+            GroupElement rollup = new GroupElement(Aggregation.GroupType.Rollup, columns);
             clause.addGroupSet(rollup);
             break;
 
@@ -695,7 +696,7 @@ public final class QueryAnalyzer {
 
       if (columnRefs.size() > 0) {
         Column [] groupingFields = columnRefs.toArray(new Column[columnRefs.size()]);
-        GroupElement g = new GroupElement(GroupType.GROUPBY, groupingFields);
+        GroupElement g = new GroupElement(Aggregation.GroupType.OrdinaryGroup, groupingFields);
         clause.addGroupSet(g);
       }
     }

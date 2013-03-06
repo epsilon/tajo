@@ -105,8 +105,18 @@ public class Aggregation extends UnaryOperator {
   }
 
   public static enum GroupType {
-    GROUPBY,
-    CUBE,
-    ROLLUP
-  }
+    OrdinaryGroup(""),
+    Cube("Cube"),
+    Rollup("Rollup"),
+    EmptySet("()");
+
+    String displayName;
+    GroupType(String displayName) {
+      this.displayName = displayName;
+    }
+
+    public String toString() {
+      return displayName;
+    }
+  };
 }

@@ -23,6 +23,8 @@ import tajo.engine.json.GsonCreator;
 import tajo.engine.parser.QueryBlock.Target;
 import tajo.util.TUtil;
 
+import java.util.List;
+
 public class RelationOp extends LogicalOp {
 	@Expose private String rel_name;
   @Expose private TableMeta meta;
@@ -73,12 +75,11 @@ public class RelationOp extends LogicalOp {
     return alias;
   }
 
-  public String getRelationId() {
-    if (alias != null) {
-      return alias;
-    } else {
-      return rel_name;
-    }
+  /**
+   * @return alias if the alias name is given. Otherwise, it returns the relation name.
+   */
+  public String getCanonicalName() {
+    return alias == null ? rel_name : alias;
   }
 	
 	public boolean hasQual() {
@@ -163,11 +164,11 @@ public class RelationOp extends LogicalOp {
   }
 
   @Override
-  public String[] getPlanString() {
+  public List<String> getPlanString() {
     StringBuilder sb = new StringBuilder("Scan on " + rel_name);
     if (hasAlias()) {
       sb.append(" as " + alias);
     }
-    return new String[] {sb.toString()};
+    return TUtil.newList(sb.toString());
   }
 }

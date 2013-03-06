@@ -25,6 +25,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import tajo.algebra.Aggregation;
 import tajo.algebra.JoinType;
 import tajo.catalog.CatalogService;
 import tajo.catalog.Column;
@@ -262,7 +263,7 @@ public class LogicalPlanner {
 
       GroupbyNode groupbyNode = null;
       if (query.hasGroupbyClause()) {
-        if (query.getGroupByClause().getGroupSet().get(0).getType() == GroupType.GROUPBY) {          
+        if (query.getGroupByClause().getGroupSet().get(0).getType() == Aggregation.GroupType.OrdinaryGroup) {
           groupbyNode = new GroupbyNode(query.getGroupByClause().getGroupSet().get(0).getColumns());
           groupbyNode.setTargetList(query.getTargetList());
           groupbyNode.setSubNode(subroot);
@@ -270,7 +271,7 @@ public class LogicalPlanner {
           Schema outSchema = getProjectedSchema(ctx, query.getTargetList());
           groupbyNode.setOutSchema(outSchema);
           subroot = groupbyNode;
-        } else if (query.getGroupByClause().getGroupSet().get(0).getType() == GroupType.CUBE) {
+        } else if (query.getGroupByClause().getGroupSet().get(0).getType() == Aggregation.GroupType.Cube) {
           LogicalNode union = createGroupByUnionByCube(ctx, query,
               subroot, query.getGroupByClause());
           Schema outSchema = getProjectedSchema(ctx, query.getTargetList());

@@ -93,6 +93,31 @@ public class TestTajoOptimizer {
   }
 
   @Test
+  public void testSort() throws SQLSyntaxError, VerifyException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select l_orderkey from lineitem l order by l_orderkey desc");
+
+    System.out.println(expr);
+
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+
+    LogicalPlan optimized = optimizer.optimize(expr);
+    System.out.println(optimized);
+  }
+
+  @Test
+  public void testGroupBy() throws SQLSyntaxError, VerifyException {
+    SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
+    Expr expr = sqlAnalyzer.parse(
+        "select l_orderkey, l_partkey from lineitem group by l_orderkey, l_partkey");
+    System.out.println(expr);
+    TajoOptimizer optimizer = new TajoOptimizer(catalog);
+    LogicalPlan optimized = optimizer.optimize(expr);
+    System.out.println(optimized);
+  }
+
+  @Test
   public void testJoin() throws SQLSyntaxError, VerifyException {
     SQLAnalyzer sqlAnalyzer = new SQLAnalyzer();
     Expr expr = sqlAnalyzer.parse(

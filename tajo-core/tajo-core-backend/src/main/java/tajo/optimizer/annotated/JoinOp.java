@@ -11,10 +11,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * 
- */
 package tajo.optimizer.annotated;
 
 import tajo.algebra.JoinType;
@@ -85,11 +81,11 @@ public class JoinOp extends BinaryOp implements Cloneable {
   }
 
   @Override
-  public String[] getPlanString() {
+  public List<String> getPlanString() {
     List<String> strings = new ArrayList<String>();
     strings.add("Join (type :" + joinType +")");
     strings.add("\n  Join Cond: " + joinQual.toString());
-    return strings.toArray(new String[strings.size()]);
+    return strings;
   }
 
   public String toString() {
